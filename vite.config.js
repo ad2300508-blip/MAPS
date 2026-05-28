@@ -36,9 +36,9 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'MAPS — Next-Gen Navigation',
-        short_name: 'MAPS',
-        description: 'App di navigazione next-gen. Mappe vettoriali 3D, multi-modale, 100% gratuita.',
+        name: 'VIA — Navigazione',
+        short_name: 'VIA',
+        description: 'VIA — navigazione next-gen. Mappe vettoriali 3D, multi-modale, 100% gratuita.',
         lang: 'it',
         theme_color: '#09090b',
         background_color: '#09090b',
