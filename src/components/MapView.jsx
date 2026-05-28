@@ -2,22 +2,16 @@ import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/maplibre';
 import { motion } from 'framer-motion';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import {
-  INITIAL_VIEW_STATE,
-  MOCK_POIS,
-  MOCK_USER_LOCATION,
-  TRANSPORT_MODES,
-  getModeById,
-} from '../data/mockData';
+import { getModeById } from '../data/mockData';
 
-// ── Free map style (CARTO Dark Matter — no API key) ───────────────────────
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
-const SEED_COUNT = 3;
+const INITIAL_VIEW = { longitude: 12, latitude: 45, zoom: 5, pitch: 0, bearing: 0 };
+const SEED_COUNT = 4;
 
-// ─── Interpolate sparse waypoints into many micro-segments ───────────────
+// ─── Interpolate geometry into more points for smooth animation ──────────
 function interpolateLine(coords, targetPts) {
-  if (coords.length < 2) return coords;
+  if (!coords || coords.length < 2) return coords ?? [];
   const result = [];
   const segCount = coords.length - 1;
   const pts = Math.max(4, Math.floor(targetPts / segCount));
@@ -34,14 +28,11 @@ function interpolateLine(coords, targetPts) {
   return result;
 }
 
-// ─── 3D buildings (auto-detect tile source) ──────────────────────────────
 function add3DBuildings(map) {
   try {
     const style = map.getStyle();
-    const vectorSourceId = Object.entries(style.sources)
-      .find(([, s]) => s.type === 'vector')?.[0];
+    const vectorSourceId = Object.entries(style.sources).find(([, s]) => s.type === 'vector')?.[0];
     if (!vectorSourceId) return;
-
     const firstSymbolId = style.layers.find((l) => l.type === 'symbol')?.id;
 
     map.addLayer(
@@ -55,10 +46,7 @@ function add3DBuildings(map) {
         paint: {
           'fill-extrusion-color': [
             'interpolate', ['linear'], ['get', 'render_height'],
-            0,   '#0d1117',
-            50,  '#161b22',
-            150, '#1e2535',
-            300, '#252d45',
+            0, '#0d1117', 50, '#161b22', 150, '#1e2535', 300, '#252d45',
           ],
           'fill-extrusion-height': ['get', 'render_height'],
           'fill-extrusion-base':   ['get', 'render_min_height'],
@@ -67,17 +55,30 @@ function add3DBuildings(map) {
       },
       firstSymbolId,
     );
-  } catch {
-    // Graceful fallback — app works fine without 3D buildings
-  }
+  } catch { /* graceful fallback */ }
 }
 
 // ─── User location marker ─────────────────────────────────────────────────
-function UserLocationMarker() {
+function UserLocationMarker({ heading }) {
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 36, height: 36 }}>
-      <span className="user-marker-ring"   style={{ width: 36, height: 36 }} />
-      <span className="user-marker-ring-2" style={{ width: 36, height: 36 }} />
+    <div className="relative flex items-center justify-center" style={{ width: 40, height: 40 }}>
+      <span className="user-marker-ring"   style={{ width: 40, height: 40 }} />
+      <span className="user-marker-ring-2" style={{ width: 40, height: 40 }} />
+      {heading != null && (
+        <div
+          className="absolute"
+          style={{
+            width: 0, height: 0,
+            borderLeft: '7px solid transparent',
+            borderRight: '7px solid transparent',
+            borderBottom: '18px solid rgba(76,201,240,0.8)',
+            bottom: '50%',
+            transformOrigin: '50% 100%',
+            transform: `rotate(${heading}deg)`,
+            marginBottom: '1px',
+          }}
+        />
+      )}
       <span
         className="relative w-4 h-4 rounded-full bg-[#4cc9f0] border-2 border-white user-marker-dot"
         style={{ boxShadow: '0 0 10px 3px rgba(76,201,240,0.65)' }}
@@ -86,17 +87,16 @@ function UserLocationMarker() {
   );
 }
 
-// ─── Route destination marker ─────────────────────────────────────────────
-function DestinationMarker({ color }) {
+// ─── Destination marker ───────────────────────────────────────────────────
+function DestinationMarker({ color, emoji }) {
   return (
     <div className="dest-marker flex flex-col items-center">
       <div
-        className="w-5 h-5 rounded-full border-2 border-white"
-        style={{
-          background: `linear-gradient(135deg, ${color}bb, ${color})`,
-          boxShadow: `0 0 14px ${color}90`,
-        }}
-      />
+        className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl glass-bright"
+        style={{ border: `1.5px solid ${color}`, boxShadow: `0 0 18px ${color}60` }}
+      >
+        {emoji ?? '📍'}
+      </div>
       <div
         className="w-2 h-3 -mt-1"
         style={{
@@ -108,85 +108,47 @@ function DestinationMarker({ color }) {
   );
 }
 
-// ─── POI marker ───────────────────────────────────────────────────────────
-function POIMarker({ poi, isSelected, onClick }) {
-  return (
-    <motion.button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="relative flex flex-col items-center focus:outline-none cursor-pointer"
-      initial={{ scale: 0, opacity: 0, y: 10 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.05 }}
-      whileHover={{ scale: 1.14, y: -3 }}
-      whileTap={{ scale: 0.9 }}
-    >
-      <motion.div
-        className="flex items-center justify-center w-11 h-11 rounded-2xl glass-bright"
-        animate={
-          isSelected
-            ? { boxShadow: [`0 0 0 0 ${poi.color}55`, `0 0 0 8px ${poi.color}00`] }
-            : { boxShadow: '0 4px 16px rgba(0,0,0,0.45)' }
-        }
-        transition={isSelected ? { repeat: Infinity, duration: 1.8, ease: 'easeOut' } : {}}
-        style={isSelected ? { border: `1.5px solid ${poi.color}`, boxShadow: `0 0 18px ${poi.color}60` } : {}}
-      >
-        <span className="text-xl leading-none select-none">{poi.emoji}</span>
-      </motion.div>
-
-      <div
-        className="w-2 h-2 -mt-1 rotate-45"
-        style={{
-          background: isSelected ? poi.color : 'rgba(16,16,28,0.88)',
-          border: isSelected
-            ? `1px solid ${poi.color}`
-            : '1px solid rgba(255,255,255,0.12)',
-          transition: 'all 0.2s ease',
-        }}
-      />
-    </motion.button>
-  );
-}
-
 // ─── MapView ──────────────────────────────────────────────────────────────
-export default function MapView({ onMapLoaded, onPOISelect, selectedPOI, selectedModeId, is3DMode }) {
+export default function MapView({
+  onMapLoaded,
+  userLocation,
+  userHeading,
+  destination,
+  route,            // OSRM route object (or null)
+  selectedModeId,
+  is3DMode,
+  isNavigating,
+}) {
   const mapRef  = useRef(null);
   const animRef = useRef(null);
-  const [mapReady, setMapReady]       = useState(false);
-  const [visibleCount, setVisibleCount] = useState(SEED_COUNT);
+  const [mapReady,      setMapReady]      = useState(false);
+  const [visibleCount,  setVisibleCount]  = useState(SEED_COUNT);
+  const [hasFlownToUser, setHasFlownToUser] = useState(false);
 
-  // Compute interpolated points for the current mode
   const currentMode = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
 
-  const modePoints = useMemo(
-    () => interpolateLine(currentMode.routeCoords, 140),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentMode.id],
-  );
+  // Build interpolated route coordinates from OSRM geometry
+  const routeCoords = useMemo(() => {
+    const coords = route?.geometry?.coordinates;
+    if (!coords?.length) return [];
+    return interpolateLine(coords, 160);
+  }, [route]);
 
-  // Dynamic route GeoJSON
+  // GeoJSON fed to the map layer
   const routeGeoJSON = useMemo(
     () => ({
       type: 'Feature',
       properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: modePoints.slice(0, visibleCount),
-      },
+      geometry: { type: 'LineString', coordinates: routeCoords.slice(0, visibleCount) },
     }),
-    [modePoints, visibleCount],
+    [routeCoords, visibleCount],
   );
 
-  // Dynamic layer styles — update when mode changes
   const glowLayer = useMemo(() => ({
     id: 'route-glow',
     type: 'line',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: {
-      'line-color': currentMode.color,
-      'line-width': 28,
-      'line-opacity': 0.12,
-      'line-blur': 20,
-    },
+    paint: { 'line-color': currentMode.color, 'line-width': 26, 'line-opacity': 0.12, 'line-blur': 18 },
   }), [currentMode.color]);
 
   const lineLayer = useMemo(() => ({
@@ -205,24 +167,19 @@ export default function MapView({ onMapLoaded, onPOISelect, selectedPOI, selecte
   }), [currentMode.gradientStart, currentMode.gradientEnd, currentMode.lineWidth]);
 
   // Animate route drawing from scratch
-  const animateRoute = useCallback((points) => {
-    if (animRef.current) cancelAnimationFrame(animRef.current);
+  const animateRoute = useCallback((pts) => {
+    cancelAnimationFrame(animRef.current);
     setVisibleCount(SEED_COUNT);
+    if (!pts?.length) return;
 
     let idx = SEED_COUNT;
-    const total = points.length;
-
+    const total = pts.length;
     const tick = () => {
       idx++;
       setVisibleCount(idx);
-      if (idx < total) {
-        animRef.current = requestAnimationFrame(tick);
-      }
+      if (idx < total) animRef.current = requestAnimationFrame(tick);
     };
-
-    setTimeout(() => {
-      animRef.current = requestAnimationFrame(tick);
-    }, 300);
+    setTimeout(() => { animRef.current = requestAnimationFrame(tick); }, 200);
   }, []);
 
   const handleLoad = useCallback(() => {
@@ -231,65 +188,99 @@ export default function MapView({ onMapLoaded, onPOISelect, selectedPOI, selecte
     add3DBuildings(map);
     if (onMapLoaded) onMapLoaded(mapRef.current);
     setMapReady(true);
-    animateRoute(modePoints);
-  }, [onMapLoaded, animateRoute, modePoints]);
+  }, [onMapLoaded]);
 
-  // Re-animate when the mode changes (new route geometry)
+  // Fly to user once GPS is acquired
+  useEffect(() => {
+    if (!mapReady || !userLocation || hasFlownToUser) return;
+    mapRef.current?.flyTo({
+      center: userLocation,
+      zoom: 15,
+      pitch: is3DMode ? 52 : 0,
+      bearing: 0,
+      duration: 1800,
+      essential: true,
+    });
+    setHasFlownToUser(true);
+  }, [mapReady, userLocation, hasFlownToUser, is3DMode]);
+
+  // Re-animate when route changes (new destination or mode)
   useEffect(() => {
     if (!mapReady) return;
-    animateRoute(modePoints);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMode.id, mapReady]);
+    animateRoute(routeCoords);
+  }, [routeCoords, mapReady, animateRoute]);
 
-  // Sync 3D pitch toggle
+  // Navigation follow mode: map tracks user position + heading
   useEffect(() => {
-    if (!mapReady) return;
+    if (!isNavigating || !userLocation || !mapReady) return;
+    mapRef.current?.easeTo({
+      center: userLocation,
+      bearing: userHeading ?? 0,
+      zoom: 17,
+      pitch: 60,
+      duration: 600,
+    });
+  }, [isNavigating, userLocation, userHeading, mapReady]);
+
+  // 3D pitch toggle
+  useEffect(() => {
+    if (!mapReady || isNavigating) return;
     mapRef.current?.easeTo({ pitch: is3DMode ? 52 : 0, duration: 850 });
-  }, [is3DMode, mapReady]);
+  }, [is3DMode, mapReady, isNavigating]);
 
-  // Cleanup animation on unmount
-  useEffect(() => () => { if (animRef.current) cancelAnimationFrame(animRef.current); }, []);
-
-  const destCoords = currentMode.routeCoords.at(-1);
+  // Cleanup
+  useEffect(() => () => cancelAnimationFrame(animRef.current), []);
 
   return (
     <div className="w-full h-full">
       <Map
         ref={mapRef}
-        initialViewState={INITIAL_VIEW_STATE}
+        initialViewState={INITIAL_VIEW}
         style={{ width: '100%', height: '100%' }}
         mapStyle={MAP_STYLE}
         onLoad={handleLoad}
         antialias
         attributionControl
       >
-        {/* Animated route */}
-        <Source id="route-src" type="geojson" data={routeGeoJSON} lineMetrics>
-          <Layer {...glowLayer} />
-          <Layer {...lineLayer} />
-        </Source>
+        {/* Animated route line */}
+        {routeCoords.length > 1 && (
+          <Source id="route-src" type="geojson" data={routeGeoJSON} lineMetrics>
+            <Layer {...glowLayer} />
+            <Layer {...lineLayer} />
+          </Source>
+        )}
 
         {/* User location */}
-        <Marker longitude={MOCK_USER_LOCATION[0]} latitude={MOCK_USER_LOCATION[1]} anchor="center">
-          <UserLocationMarker />
-        </Marker>
-
-        {/* Route end marker (color follows mode) */}
-        <Marker longitude={destCoords[0]} latitude={destCoords[1]} anchor="bottom">
-          <DestinationMarker color={currentMode.color} />
-        </Marker>
-
-        {/* POI markers */}
-        {MOCK_POIS.map((poi) => (
-          <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
-            <POIMarker
-              poi={poi}
-              isSelected={selectedPOI?.id === poi.id}
-              onClick={() => onPOISelect(poi)}
-            />
+        {userLocation && (
+          <Marker longitude={userLocation[0]} latitude={userLocation[1]} anchor="center">
+            <UserLocationMarker heading={userHeading} />
           </Marker>
-        ))}
+        )}
+
+        {/* Destination marker */}
+        {destination && (
+          <Marker longitude={destination.coords[0]} latitude={destination.coords[1]} anchor="bottom">
+            <DestinationMarker color={currentMode.color} emoji={destination.emoji} />
+          </Marker>
+        )}
       </Map>
+
+      {/* GPS acquiring overlay */}
+      {!userLocation && (
+        <motion.div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-surface-900/60 backdrop-blur-sm pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="w-16 h-16 rounded-full border-2 border-[#4cc9f0]/30"
+            animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0.2, 0.6] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          />
+          <p className="text-sm text-slate-400 font-medium">Acquisizione GPS…</p>
+        </motion.div>
+      )}
     </div>
   );
 }
