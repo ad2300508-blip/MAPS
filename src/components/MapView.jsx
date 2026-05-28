@@ -181,6 +181,7 @@ export default function MapView({
   userLocation,
   userHeading,
   userAccuracy,
+  userSpeed,
   destination,
   route,
   selectedModeId,
@@ -349,11 +350,15 @@ export default function MapView({
   // Navigation follow mode — only when map is centered (user hasn't panned away)
   useEffect(() => {
     if (!isNavigating || !isFollowing || !userLocation || !mapReady) return;
+    // Scale zoom/pitch to speed: more forward visibility at highway speeds
+    const kmh      = (userSpeed ?? 0) * 3.6;
+    const navZoom  = kmh > 100 ? 15 : kmh > 50 ? 16 : 17;
+    const navPitch = kmh > 100 ? 50 : kmh > 50 ? 55 : 60;
     mapRef.current?.easeTo({
       center: userLocation, bearing: userHeading ?? 0,
-      zoom: 17, pitch: 60, duration: 400,
+      zoom: navZoom, pitch: navPitch, duration: 400,
     });
-  }, [isNavigating, isFollowing, userLocation, userHeading, mapReady]);
+  }, [isNavigating, isFollowing, userLocation, userHeading, mapReady, userSpeed]);
 
   // 3D pitch toggle
   useEffect(() => {

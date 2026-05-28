@@ -396,6 +396,7 @@ export default function App() {
         isNavigating={isNavigating}
         isFollowing={mapCentered}
         userAccuracy={accuracy}
+        userSpeed={speed}
         onPOITap={handlePOITap}
         onLongPress={handleLongPress}
         onUserPan={handleUserPan}
