@@ -1,0 +1,16 @@
+{
+  "appId": "com.maps.nextgen",
+  "appName": "MAPS",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#09090b",
+      "showSpinner": false
+    }
+  }
+}

@@ -5,3 +5,12 @@ dist/
 .env.*.local
 *.local
 .DS_Store
+
+# Android build outputs (keep source, ignore build artifacts)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+*.keystore
