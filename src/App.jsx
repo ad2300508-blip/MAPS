@@ -18,10 +18,11 @@ export default function App() {
   const [is3DMode,       setIs3DMode]       = useState(true);
   const [isNavigating,   setIsNavigating]   = useState(false);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [isOffRoute,     setIsOffRoute]     = useState(false);
   const mapApiRef = useRef(null);
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
-  const { location: userLocation, heading: gpsHeading, error: gpsError } = useGeolocation();
+  const { location: userLocation, heading: gpsHeading, speed, error: gpsError } = useGeolocation();
   const compassHeading = useCompassHeading();
   // GPS heading is valid only when moving; compass works stationary
   const userHeading = gpsHeading ?? compassHeading;
@@ -46,29 +47,45 @@ export default function App() {
     setIsSearchActive(false);
     setIsNavigating(false);
     setCurrentStepIdx(0);
+    setIsOffRoute(false);
 
-    // Fly map to show origin→destination
     if (userLocation) {
-      const midLng = (userLocation[0] + dest.coords[0]) / 2;
-      const midLat = (userLocation[1] + dest.coords[1]) / 2;
-      mapApiRef.current?.flyTo({
-        center: [midLng, midLat],
-        zoom: 13,
-        pitch: is3DMode ? 48 : 0,
-        bearing: 0,
-        duration: 1600,
-        essential: true,
+      // Fit both user + destination in view
+      const west  = Math.min(userLocation[0], dest.coords[0]);
+      const east  = Math.max(userLocation[0], dest.coords[0]);
+      const south = Math.min(userLocation[1], dest.coords[1]);
+      const north = Math.max(userLocation[1], dest.coords[1]);
+      mapApiRef.current?.fitBounds([[west, south], [east, north]], {
+        padding: 80, pitch: is3DMode ? 48 : 0, bearing: 0, duration: 1600,
       });
     } else {
       mapApiRef.current?.flyTo({
-        center: dest.coords,
-        zoom: 14,
-        pitch: is3DMode ? 48 : 0,
-        duration: 1400,
-        essential: true,
+        center: dest.coords, zoom: 14,
+        pitch: is3DMode ? 48 : 0, duration: 1400, essential: true,
       });
     }
   }, [userLocation, is3DMode]);
+
+  // ── Long press → reverse geocode → set destination ───────────────────────
+  const handleLongPress = useCallback(async ([lng, lat]) => {
+    try {
+      const res  = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'Accept-Language': 'it' } },
+      );
+      const data = await res.json();
+      handleDestinationSelect({
+        name:    data.name || data.display_name?.split(',')[0] || 'Posizione',
+        address: data.display_name || '',
+        coords:  [lng, lat],
+        emoji:   '📍',
+      });
+    } catch {
+      handleDestinationSelect({
+        name: 'Posizione selezionata', address: '', coords: [lng, lat], emoji: '📍',
+      });
+    }
+  }, [handleDestinationSelect]);
 
   const handlePOITap = useCallback((poi) => {
     handleDestinationSelect({
@@ -101,6 +118,7 @@ export default function App() {
   const handleStopNavigation = useCallback(() => {
     setIsNavigating(false);
     setCurrentStepIdx(0);
+    setIsOffRoute(false);
     // Re-center on user
     if (userLocation) {
       mapApiRef.current?.flyTo({
@@ -128,6 +146,19 @@ export default function App() {
       setCurrentStepIdx((i) => i + 1);
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx]);
+
+  // ── Off-route detection ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isNavigating || !userLocation || !currentRoute) { setIsOffRoute(false); return; }
+    const coords = currentRoute.geometry?.coordinates ?? [];
+    if (!coords.length) return;
+    let minDist = Infinity;
+    for (const c of coords) {
+      const d = haversineMeters(userLocation, c);
+      if (d < minDist) minDist = d;
+    }
+    setIsOffRoute(minDist > 75);
+  }, [userLocation, isNavigating, currentRoute]);
 
   // ── Arrived at destination ───────────────────────────────────────────────
   useEffect(() => {
@@ -177,6 +208,7 @@ export default function App() {
         is3DMode={is3DMode}
         isNavigating={isNavigating}
         onPOITap={handlePOITap}
+        onLongPress={handleLongPress}
       />
 
       {/* UI overlay */}
@@ -253,6 +285,9 @@ export default function App() {
                 route={currentRoute}
                 currentStepIdx={currentStepIdx}
                 modeColor={getModeById(selectedModeId).color}
+                speed={speed}
+                isOffRoute={isOffRoute}
+                userLocation={userLocation}
                 onStop={handleStopNavigation}
               />
             </div>

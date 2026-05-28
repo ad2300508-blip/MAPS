@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 
 export function useGeolocation() {
-  const [location, setLocation] = useState(null);   // [lng, lat]
-  const [heading, setHeading] = useState(null);     // degrees 0-360
-  const [accuracy, setAccuracy] = useState(null);   // meters
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [location, setLocation] = useState(null);
+  const [heading,  setHeading]  = useState(null);
+  const [speed,    setSpeed]    = useState(null);   // m/s, null if unknown
+  const [accuracy, setAccuracy] = useState(null);
+  const [error,    setError]    = useState(null);
+  const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocalizzazione non supportata dal browser');
+      setError('Geolocalizzazione non supportata');
       setLoading(false);
       return;
     }
@@ -18,14 +19,13 @@ export function useGeolocation() {
       (pos) => {
         setLocation([pos.coords.longitude, pos.coords.latitude]);
         setAccuracy(pos.coords.accuracy);
-        if (pos.coords.heading != null && !isNaN(pos.coords.heading)) {
-          setHeading(pos.coords.heading);
-        }
+        if (pos.coords.speed != null && pos.coords.speed >= 0) setSpeed(pos.coords.speed);
+        if (pos.coords.heading != null && !isNaN(pos.coords.heading)) setHeading(pos.coords.heading);
         setError(null);
         setLoading(false);
       },
       (err) => {
-        setError(err.code === 1 ? 'Permesso GPS negato' : 'Impossibile ottenere la posizione');
+        setError(err.code === 1 ? 'Permesso GPS negato' : 'Impossibile ottenere posizione');
         setLoading(false);
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
@@ -34,5 +34,5 @@ export function useGeolocation() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  return { location, heading, accuracy, error, loading };
+  return { location, heading, speed, accuracy, error, loading };
 }

@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/maplibre';
 import { motion } from 'framer-motion';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { getModeById } from '../data/mockData';
+import { getModeById, haversineMeters } from '../data/mockData';
 import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -166,6 +166,7 @@ export default function MapView({
   is3DMode,
   isNavigating,
   onPOITap,
+  onLongPress,
 }) {
   const mapRef  = useRef(null);
   const animRef = useRef(null);
@@ -175,6 +176,15 @@ export default function MapView({
 
   const currentMode = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
   const nearbyPOIs  = useNearbyPOIs(userLocation);
+
+  // Show the 10 closest POIs only
+  const sortedPOIs = useMemo(() => {
+    if (!userLocation || !nearbyPOIs.length) return nearbyPOIs.slice(0, 10);
+    return [...nearbyPOIs]
+      .map(p => ({ ...p, _d: haversineMeters(userLocation, p.coords) }))
+      .sort((a, b) => a._d - b._d)
+      .slice(0, 10);
+  }, [nearbyPOIs, userLocation]);
 
   // Interpolate OSRM geometry
   const routeCoords = useMemo(() => {
@@ -298,6 +308,46 @@ export default function MapView({
     mapRef.current?.easeTo({ pitch: is3DMode ? 52 : 0, duration: 850 });
   }, [is3DMode, mapReady, isNavigating]);
 
+  // Long-press → fire onLongPress with [lng, lat]
+  useEffect(() => {
+    if (!mapReady || !onLongPress) return;
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    let timer = null;
+    let startX = 0, startY = 0, moved = false;
+    const onStart = (e) => {
+      if (e.touches.length !== 1) return;
+      moved = false;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      timer = setTimeout(() => {
+        if (moved) return;
+        const canvas = map.getCanvas();
+        const rect   = canvas.getBoundingClientRect();
+        const ll = map.unproject([startX - rect.left, startY - rect.top]);
+        onLongPress([ll.lng, ll.lat]);
+      }, 600);
+    };
+    const onMove = (e) => {
+      if (Math.abs(e.touches[0].clientX - startX) > 8 ||
+          Math.abs(e.touches[0].clientY - startY) > 8) {
+        moved = true;
+        clearTimeout(timer);
+      }
+    };
+    const onEnd = () => clearTimeout(timer);
+    const canvas = map.getCanvas();
+    canvas.addEventListener('touchstart', onStart, { passive: true });
+    canvas.addEventListener('touchmove',  onMove,  { passive: true });
+    canvas.addEventListener('touchend',   onEnd);
+    return () => {
+      canvas.removeEventListener('touchstart', onStart);
+      canvas.removeEventListener('touchmove',  onMove);
+      canvas.removeEventListener('touchend',   onEnd);
+      clearTimeout(timer);
+    };
+  }, [mapReady, onLongPress]);
+
   useEffect(() => () => cancelAnimationFrame(animRef.current), []);
 
   return (
@@ -332,8 +382,8 @@ export default function MapView({
           </Marker>
         )}
 
-        {/* Nearby POIs — hidden during navigation */}
-        {!isNavigating && nearbyPOIs.map((poi) => (
+        {/* Nearby POIs — hidden during navigation, closest 10 only */}
+        {!isNavigating && sortedPOIs.map((poi) => (
           <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
             <POIChip poi={poi} onTap={onPOITap} />
           </Marker>
