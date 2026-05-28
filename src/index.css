@@ -6,6 +6,22 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Prevent blue tap highlight on Android Chrome */
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent text selection on long press (our long-press is intentional) */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable selection for text inputs */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Prevent double-tap zoom on interactive elements */
+button, a, [role="button"] {
+  touch-action: manipulation;
 }
 
 html,

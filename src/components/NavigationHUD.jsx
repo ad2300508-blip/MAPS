@@ -49,6 +49,9 @@ export default function NavigationHUD({
   // Remaining totals
   const remainingMeters = steps.slice(currentStepIdx).reduce((s, x) => s + (x.distance ?? 0), 0);
   const remainingSecs   = steps.slice(currentStepIdx).reduce((s, x) => s + (x.duration ?? 0), 0);
+  const totalMeters     = steps.reduce((s, x) => s + (x.distance ?? 0), 0);
+  const progress        = totalMeters > 0 ? Math.min(1, Math.max(0, 1 - remainingMeters / totalMeters)) : 0;
+  const stepsLeft       = steps.length - currentStepIdx - 1; // turns remaining
 
   const turnWarning  = distToTurn < 200 && nextStep;
   const turnUrgent   = distToTurn < 60  && nextStep;
@@ -123,8 +126,20 @@ export default function NavigationHUD({
           </button>
         </div>
 
-        {/* Divider */}
-        <div className="mx-5 h-px" style={{ background: `${modeColor}20` }} />
+        {/* Route progress bar */}
+        <div className="mx-5">
+          <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${progress * 100}%`,
+                background: `linear-gradient(90deg, ${modeColor}88, ${modeColor})`,
+                borderRadius: 2,
+                transition: 'width 1.2s ease',
+              }}
+            />
+          </div>
+        </div>
 
         {/* Bottom stats row */}
         <div className="flex items-center px-5 py-3 gap-2">
@@ -140,7 +155,14 @@ export default function NavigationHUD({
             </div>
           )}
 
-          <div className="flex-1" />
+          {/* Steps remaining */}
+          <div className="flex-1 text-center">
+            {stepsLeft > 0 && (
+              <p className="text-xs text-slate-600">
+                {stepsLeft} {stepsLeft === 1 ? 'svolta' : 'svolte'}
+              </p>
+            )}
+          </div>
 
           {/* Remaining distance */}
           <div className="text-center">
