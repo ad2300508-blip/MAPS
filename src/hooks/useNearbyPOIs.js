@@ -70,8 +70,9 @@ export function useNearbyPOIs(location, { radius = 600, paused = false } = {}) {
         });
       setPOIs(places);
     });
-  }, [location?.[0] && grid(location[0]), location?.[1] && grid(location[1])]);
-  // ↑ recomputes only when grid cell changes (~1.1 km movement)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location != null ? grid(location[0]) : null, location != null ? grid(location[1]) : null, paused]);
+  // ↑ recomputes only when grid cell changes (~1.1 km movement) or paused flag changes
 
   return pois;
 }

@@ -296,6 +296,22 @@ export default function POIDetailsPanel({
                     </a>
                   )}
 
+                  {/* Share — uses Web Share API (supported on Android Chrome) */}
+                  {typeof navigator.share === 'function' && destination.coords && (
+                    <button
+                      onClick={() => navigator.share({
+                        title: destination.name,
+                        text: `${destination.name}${destination.address ? '\n' + destination.address : ''}`,
+                        url: `https://maps.google.com/maps?q=${destination.coords[1]},${destination.coords[0]}`,
+                      }).catch(() => {})}
+                      className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium w-full"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
+                    >
+                      <span style={{ fontSize: 16 }}>📤</span>
+                      Condividi destinazione
+                    </button>
+                  )}
+
                   <p className="text-xs text-slate-600">
                     Dati forniti da OpenStreetMap — gratuiti e aggiornati dalla community.
                   </p>

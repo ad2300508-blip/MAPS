@@ -261,7 +261,10 @@ export default function App() {
       if (d < min) min = d;
     }
     const threshold = Math.max(75, (accuracy ?? 0) + 50);
-    const offNow = min > threshold;
+    // Hysteresis: once off-route, require coming within 55% of threshold before clearing
+    // This prevents rapid banner toggling when GPS jitter puts the user near the boundary
+    const leaveThreshold = Math.max(35, threshold * 0.55);
+    const offNow = prevOffRouteRef.current ? min > leaveThreshold : min > threshold;
     setIsOffRoute(offNow);
     if (offNow && !prevOffRouteRef.current) {
       speak('Fuori percorso. Ricalcolo in corso.');
