@@ -186,10 +186,17 @@ export default function App() {
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
   const vibrate = useCallback((pattern) => { navigator.vibrate?.(pattern); }, []);
-  const spokenAt200Ref = useRef(false);
-  const spokenAt60Ref  = useRef(false);
+  const spokenAt200Ref    = useRef(false);
+  const spokenAt60Ref     = useRef(false);
+  const warnStepRef       = useRef(-1);  // reset refs when step changes
   useEffect(() => {
     if (!isNavigating || !userLocation || !currentRoute) return;
+    // Reset warning flags when the step changes
+    if (warnStepRef.current !== currentStepIdx) {
+      warnStepRef.current    = currentStepIdx;
+      spokenAt200Ref.current = false;
+      spokenAt60Ref.current  = false;
+    }
     const steps    = currentRoute.legs?.[0]?.steps ?? [];
     const nextStep = steps[currentStepIdx + 1];
     if (!nextStep) return;
