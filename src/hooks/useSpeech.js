@@ -18,13 +18,14 @@ export function useSpeech() {
   const speak = useCallback((text, { rate = 1.05, urgent = false } = {}) => {
     if (!window.speechSynthesis || !text) return;
     window.speechSynthesis.cancel();
-    const utt    = new SpeechSynthesisUtterance(text);
-    utt.lang     = 'it-IT';
-    utt.rate     = urgent ? 1.1 : rate;
-    utt.volume   = 1;
+    const utt  = new SpeechSynthesisUtterance(text);
+    utt.lang   = 'it-IT';
+    utt.rate   = urgent ? 1.1 : rate;
+    utt.volume = 1;
     const itVoice = voicesRef.current.find((v) => v.lang.startsWith('it'));
     if (itVoice) utt.voice = itVoice;
-    window.speechSynthesis.speak(utt);
+    // Android WebView needs a brief gap after cancel() before speak() is reliable
+    setTimeout(() => window.speechSynthesis.speak(utt), 50);
   }, []);
 
   const cancel = useCallback(() => {

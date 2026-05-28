@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 export function useWakeLock(active) {
-  const lockRef = useRef(null);
+  const lockRef    = useRef(null);
+  const cancelRef  = useRef(false);
 
   useEffect(() => {
     if (!active) {
@@ -12,23 +13,27 @@ export function useWakeLock(active) {
 
     if (!('wakeLock' in navigator)) return;
 
-    let cancelled = false;
-    navigator.wakeLock.request('screen')
-      .then((lock) => {
-        if (cancelled) { lock.release().catch(() => {}); return; }
+    cancelRef.current = false;
+
+    // Recursive acquire so every released lock sets up a new release listener,
+    // handling the case where the screen turns off more than once per session.
+    const acquire = async () => {
+      if (cancelRef.current) return;
+      try {
+        const lock = await navigator.wakeLock.request('screen');
+        if (cancelRef.current) { lock.release().catch(() => {}); return; }
         lockRef.current = lock;
-        // Re-acquire on visibility change (lock is released when tab hides)
         lock.addEventListener('release', () => {
-          if (cancelled || document.visibilityState !== 'visible') return;
-          navigator.wakeLock.request('screen')
-            .then((l) => { lockRef.current = l; })
-            .catch(() => {});
+          lockRef.current = null;
+          if (!cancelRef.current && document.visibilityState === 'visible') acquire();
         });
-      })
-      .catch(() => {}); // silently ignore (permission denied or not supported)
+      } catch { /* permission denied or not supported */ }
+    };
+
+    acquire();
 
     return () => {
-      cancelled = true;
+      cancelRef.current = true;
       lockRef.current?.release().catch(() => {});
       lockRef.current = null;
     };

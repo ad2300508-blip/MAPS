@@ -252,16 +252,21 @@ export default function App() {
       nextStep.maneuver?.exit,
     );
 
-    if (dist < 200 && dist >= 60 && !spokenAt200Ref.current) {
+    // Scale warning distance to speed: aim for ~10 s advance notice (min 200m / 60m)
+    const speedMs   = speed ?? 0;
+    const warnDist   = Math.max(200, speedMs * 10);
+    const urgentDist = Math.max(60,  speedMs * 4);
+
+    if (dist < warnDist && dist >= urgentDist && !spokenAt200Ref.current) {
       spokenAt200Ref.current = true;
       spokenAt60Ref.current  = false;
       speak(`Tra ${formatDistanceVoice(dist)}, ${instr}`);
       vibrate([60]);
-    } else if (dist < 60 && !spokenAt60Ref.current) {
+    } else if (dist < urgentDist && !spokenAt60Ref.current) {
       spokenAt60Ref.current  = true;
       speak(instr, { urgent: true });
       vibrate([80, 60, 80]);
-    } else if (dist >= 200) {
+    } else if (dist >= warnDist) {
       spokenAt200Ref.current = false;
       spokenAt60Ref.current  = false;
     }
