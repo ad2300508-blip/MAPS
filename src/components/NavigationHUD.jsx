@@ -31,19 +31,23 @@ export default function NavigationHUD({
 }) {
   if (!route) return null;
 
-  const steps    = route.legs?.[0]?.steps ?? [];
-  const step     = steps[currentStepIdx] ?? steps[steps.length - 1];
-  const nextStep = steps[currentStepIdx + 1];
+  const steps     = route.legs?.[0]?.steps ?? [];
+  const step      = steps[currentStepIdx] ?? steps[steps.length - 1];
+  const nextStep  = steps[currentStepIdx + 1];
+  const next2Step = steps[currentStepIdx + 2];
 
-  const type     = step?.maneuver?.type ?? 'straight';
-  const modifier = step?.maneuver?.modifier;
-  const name     = step?.name ?? '';
+  // Show the UPCOMING maneuver so the user knows what to do next.
+  // Fall back to the current step only on the final arrive step (no nextStep).
+  const upcomingStep = nextStep ?? step;
+  const type     = upcomingStep?.maneuver?.type ?? 'straight';
+  const modifier = upcomingStep?.maneuver?.modifier;
+  const name     = upcomingStep?.name ?? '';
 
   const icon        = maneuverIcon(type, modifier);
-  const instruction = maneuverToItalian(type, modifier, name, step?.maneuver?.exit);
+  const instruction = maneuverToItalian(type, modifier, name, upcomingStep?.maneuver?.exit);
 
-  // Distance to next turn: haversine from user to next maneuver point
-  const nextTurnLoc = nextStep?.maneuver?.location;
+  // Distance to the upcoming maneuver point
+  const nextTurnLoc = (nextStep ?? step)?.maneuver?.location;
   const distToTurn  = (nextTurnLoc && userLocation)
     ? haversineMeters(userLocation, nextTurnLoc)
     : (step?.distance ?? 0);
@@ -202,14 +206,14 @@ export default function NavigationHUD({
 
           <div className="w-px h-8 bg-white/8 mx-1" />
 
-          {/* Next step */}
+          {/* Step after next */}
           <div className="text-right max-w-[100px]">
-            {nextStep ? (
+            {next2Step ? (
               <>
                 <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wide">Poi</p>
                 <p className="text-sm font-semibold text-slate-300 truncate">
-                  {maneuverIcon(nextStep.maneuver?.type, nextStep.maneuver?.modifier)}{' '}
-                  {nextStep.name || 'Continua'}
+                  {maneuverIcon(next2Step.maneuver?.type, next2Step.maneuver?.modifier)}{' '}
+                  {next2Step.name || 'Continua'}
                 </p>
               </>
             ) : (

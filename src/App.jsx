@@ -18,7 +18,13 @@ export default function App() {
   const [destination,    setDestination]    = useState(null);   // {name, address, coords, emoji}
   const [navDestCoords,  setNavDestCoords]  = useState(null);   // kept during navigation for OSRM
   const [navDestName,    setNavDestName]    = useState('');
-  const [selectedModeId, setSelectedModeId] = useState('car');
+  const [selectedModeId, setSelectedModeId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('maps-mode');
+      if (['car', 'walk', 'bike', 'transit', 'moto'].includes(saved)) return saved;
+    } catch { }
+    return 'car';
+  });
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [is3DMode,       setIs3DMode]       = useState(true);
   const [isNavigating,   setIsNavigating]   = useState(false);
@@ -46,8 +52,10 @@ export default function App() {
   // don't recreate on every 1-Hz GPS update, preventing MapView effect re-runs.
   const userLocationRef = useRef(null);
   const userHeadingRef  = useRef(null);
+  const is3DModeRef     = useRef(is3DMode);
   useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
   useEffect(() => { userHeadingRef.current  = userHeading;  }, [userHeading]);
+  useEffect(() => { is3DModeRef.current     = is3DMode;     }, [is3DMode]);
 
   // ── Offline detection ────────────────────────────────────────────────────
   useEffect(() => {
@@ -145,6 +153,7 @@ export default function App() {
 
   const handleModeChange = useCallback((modeId) => {
     setSelectedModeId(modeId);
+    try { localStorage.setItem('maps-mode', modeId); } catch { }
   }, []);
 
   // ── Start navigation ────────────────────────────────────────────────────
@@ -311,7 +320,7 @@ export default function App() {
     if (haversineMeters(userLocation, endCoord) < 40) {
       handleStopNavigation(true);
     }
-  }, [userLocation, isNavigating, currentRoute, navDestCoords]);
+  }, [userLocation, isNavigating, currentRoute, navDestCoords, handleStopNavigation]);
 
   // ── Map controls ────────────────────────────────────────────────────────
   const handleToggle3D = useCallback(() => {
@@ -353,7 +362,7 @@ export default function App() {
     if (userLocationRef.current) {
       mapApiRef.current?.easeTo({
         center: userLocationRef.current, bearing: userHeadingRef.current ?? 0,
-        zoom: 17, pitch: 60, duration: 700,
+        zoom: 17, pitch: is3DModeRef.current ? 60 : 0, duration: 700,
       });
     }
   }, []);

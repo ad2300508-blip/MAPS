@@ -48,9 +48,10 @@ export function useNearbyPOIs(location, { radius = 600, paused = false } = {}) {
 
     const [lng, lat] = location;
     const query = buildQuery(lat, lng, radius);
+    let cancelled = false;
 
     fetchOverpass(query).then((data) => {
-      if (!data) return; // all mirrors failed — keep stale POIs
+      if (cancelled || !data) return; // ignore stale or failed results
       const places = (data.elements ?? [])
         .filter((el) => el.tags?.name)
         .slice(0, 25)
@@ -70,6 +71,8 @@ export function useNearbyPOIs(location, { radius = 600, paused = false } = {}) {
         });
       setPOIs(places);
     });
+
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location != null ? grid(location[0]) : null, location != null ? grid(location[1]) : null, paused]);
   // ↑ recomputes only when grid cell changes (~1.1 km movement) or paused flag changes
