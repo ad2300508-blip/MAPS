@@ -7,6 +7,7 @@ import MapControls from './components/MapControls';
 import TransportModeSelector from './components/TransportModeSelector';
 import NavigationHUD from './components/NavigationHUD';
 import { useGeolocation } from './hooks/useGeolocation';
+import { useCompassHeading } from './hooks/useCompassHeading';
 import { useOSRM } from './hooks/useOSRM';
 import { getModeById, haversineMeters } from './data/mockData';
 
@@ -19,8 +20,11 @@ export default function App() {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const mapApiRef = useRef(null);
 
-  // ── Real GPS ────────────────────────────────────────────────────────────
-  const { location: userLocation, heading: userHeading, error: gpsError } = useGeolocation();
+  // ── Real GPS + compass ──────────────────────────────────────────────────
+  const { location: userLocation, heading: gpsHeading, error: gpsError } = useGeolocation();
+  const compassHeading = useCompassHeading();
+  // GPS heading is valid only when moving; compass works stationary
+  const userHeading = gpsHeading ?? compassHeading;
 
   // ── Real routing — 3 OSRM profiles fetched in parallel ─────────────────
   const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, destination?.coords, 'driving');
@@ -36,7 +40,7 @@ export default function App() {
 
   const handleMapLoaded = useCallback((mapApi) => { mapApiRef.current = mapApi; }, []);
 
-  // ── Destination selected from search ────────────────────────────────────
+  // ── Destination selected from search or POI tap ─────────────────────────
   const handleDestinationSelect = useCallback((dest) => {
     setDestination(dest);
     setIsSearchActive(false);
@@ -65,6 +69,15 @@ export default function App() {
       });
     }
   }, [userLocation, is3DMode]);
+
+  const handlePOITap = useCallback((poi) => {
+    handleDestinationSelect({
+      name: poi.name,
+      address: poi.address ?? '',
+      coords: poi.coords,
+      emoji: poi.emoji,
+    });
+  }, [handleDestinationSelect]);
 
   const handleClosePanel = useCallback(() => {
     setDestination(null);
@@ -163,6 +176,7 @@ export default function App() {
         selectedModeId={selectedModeId}
         is3DMode={is3DMode}
         isNavigating={isNavigating}
+        onPOITap={handlePOITap}
       />
 
       {/* UI overlay */}
