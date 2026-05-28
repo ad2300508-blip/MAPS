@@ -41,6 +41,14 @@ export default function App() {
   // ── Keep screen on during navigation ────────────────────────────────────
   useWakeLock(isNavigating);
 
+  // ── Stable refs for GPS values used in callbacks ─────────────────────────
+  // Callbacks that only READ location (not react to it) use refs so they
+  // don't recreate on every 1-Hz GPS update, preventing MapView effect re-runs.
+  const userLocationRef = useRef(null);
+  const userHeadingRef  = useRef(null);
+  useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
+  useEffect(() => { userHeadingRef.current  = userHeading;  }, [userHeading]);
+
   // ── Offline detection ────────────────────────────────────────────────────
   useEffect(() => {
     const on  = () => setIsOnline(true);
@@ -83,11 +91,12 @@ export default function App() {
     setNavDestCoords(null);
     setHasArrived(false);
 
-    if (userLocation) {
-      const west  = Math.min(userLocation[0], dest.coords[0]);
-      const east  = Math.max(userLocation[0], dest.coords[0]);
-      const south = Math.min(userLocation[1], dest.coords[1]);
-      const north = Math.max(userLocation[1], dest.coords[1]);
+    const loc = userLocationRef.current;
+    if (loc) {
+      const west  = Math.min(loc[0], dest.coords[0]);
+      const east  = Math.max(loc[0], dest.coords[0]);
+      const south = Math.min(loc[1], dest.coords[1]);
+      const north = Math.max(loc[1], dest.coords[1]);
       mapApiRef.current?.fitBounds([[west, south], [east, north]], {
         padding: 80, pitch: is3DMode ? 48 : 0, bearing: 0, duration: 1600,
       });
@@ -97,7 +106,7 @@ export default function App() {
         pitch: is3DMode ? 48 : 0, duration: 1400, essential: true,
       });
     }
-  }, [userLocation, is3DMode]);
+  }, [is3DMode]);
 
   // ── Long press → reverse geocode → set destination ─────────────────────
   const handleLongPress = useCallback(async ([lng, lat]) => {
@@ -176,13 +185,13 @@ export default function App() {
       speak('Sei arrivato a destinazione');
       navigator.vibrate?.([100, 80, 100, 80, 200]);
     }
-    if (userLocation) {
+    if (userLocationRef.current) {
       mapApiRef.current?.flyTo({
-        center: userLocation, zoom: 15,
+        center: userLocationRef.current, zoom: 15,
         pitch: is3DMode ? 52 : 0, bearing: 0, duration: 1200,
       });
     }
-  }, [userLocation, is3DMode, speak, cancel]);
+  }, [is3DMode, speak, cancel]);
 
   // ── Auto-advance steps ──────────────────────────────────────────────────
   useEffect(() => {
@@ -314,12 +323,12 @@ export default function App() {
   }, []);
 
   const handleMyLocation = useCallback(() => {
-    if (!userLocation) return;
+    if (!userLocationRef.current) return;
     mapApiRef.current?.flyTo({
-      center: userLocation, zoom: 15.5,
-      pitch: is3DMode ? 52 : 0, bearing: userHeading ?? 0, duration: 1200,
+      center: userLocationRef.current, zoom: 15.5,
+      pitch: is3DMode ? 52 : 0, bearing: userHeadingRef.current ?? 0, duration: 1200,
     });
-  }, [userLocation, userHeading, is3DMode]);
+  }, [is3DMode]);
 
   // ── Android back button ─────────────────────────────────────────────────
   useEffect(() => {
@@ -341,13 +350,13 @@ export default function App() {
   // Re-center during navigation also resets the flag
   const handleReCenter = useCallback(() => {
     setMapCentered(true);
-    if (userLocation) {
+    if (userLocationRef.current) {
       mapApiRef.current?.easeTo({
-        center: userLocation, bearing: userHeading ?? 0,
+        center: userLocationRef.current, bearing: userHeadingRef.current ?? 0,
         zoom: 17, pitch: 60, duration: 700,
       });
     }
-  }, [userLocation, userHeading]);
+  }, []);
 
   // Reset centered flag when navigation starts
   useEffect(() => {
