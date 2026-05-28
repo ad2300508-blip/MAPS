@@ -11,6 +11,7 @@ import { useGeolocation } from './hooks/useGeolocation';
 import { useCompassHeading } from './hooks/useCompassHeading';
 import { useOSRM } from './hooks/useOSRM';
 import { useSpeech } from './hooks/useSpeech';
+import { useWakeLock } from './hooks/useWakeLock';
 import { getModeById, haversineMeters, maneuverToItalian, formatDistance } from './data/mockData';
 
 export default function App() {
@@ -34,6 +35,9 @@ export default function App() {
 
   // ── Voice ───────────────────────────────────────────────────────────────
   const { speak, cancel } = useSpeech();
+
+  // ── Keep screen on during navigation ────────────────────────────────────
+  useWakeLock(isNavigating);
 
   // ── Real routing — OSRM keeps fetching even during navigation ──────────
   // navDestCoords persists through navigation so OSRM can reroute if off-path
