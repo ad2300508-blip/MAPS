@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X, MapPin, Navigation, ChevronRight, Loader } from 'lucide-react';
 import {
   TRANSPORT_MODES,
@@ -108,6 +108,7 @@ export default function POIDetailsPanel({
   onStartNavigation,
 }) {
   const isMobile    = useIsMobile();
+  const dragControls = useDragControls();
   const [activeTab, setActiveTab] = useState('directions');
 
   const profileMap = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
@@ -134,6 +135,15 @@ export default function POIDetailsPanel({
           animate="visible"
           exit="exit"
           transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+          drag={isMobile ? 'y' : false}
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.25 }}
+          dragMomentum={false}
+          onDragEnd={(_, info) => {
+            if (info.velocity.y > 200 || info.offset.y > 100) onClose();
+          }}
           className="absolute glass-bright overflow-hidden"
           style={{
             zIndex: 30,
@@ -148,10 +158,14 @@ export default function POIDetailsPanel({
           }}
         >
           <div className="flex flex-col h-full max-h-full">
-            {/* Drag handle */}
+            {/* Drag handle — touch here to dismiss panel by swiping down */}
             {isMobile && (
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1 rounded-full bg-white/15" />
+              <div
+                className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                onPointerDown={(e) => dragControls.start(e)}
+                style={{ touchAction: 'none' }}
+              >
+                <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
             )}
 
