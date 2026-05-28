@@ -177,7 +177,10 @@ export default function App() {
   const prevStepRef = useRef(-1);
   useEffect(() => {
     if (!isNavigating || !currentRoute || currentStepIdx === prevStepRef.current) return;
+    const prev = prevStepRef.current;
     prevStepRef.current = currentStepIdx;
+    // Step went backward = route reset; skip voice (reroute handler already spoke)
+    if (currentStepIdx < prev && prev !== -1) return;
     const steps = currentRoute.legs?.[0]?.steps ?? [];
     const step  = steps[currentStepIdx];
     if (!step) return;
@@ -242,16 +245,24 @@ export default function App() {
     prevOffRouteRef.current = offNow;
   }, [userLocation, isNavigating, currentRoute, speak, vibrate]);
 
-  // ── Auto-reset step index on reroute ────────────────────────────────────
+  // ── Handle route changes during navigation ───────────────────────────────
+  // Route changes every ~100m (OSRM re-fetches from new position) AND on genuine
+  // reroutes. We distinguish by checking isOffRoute at the moment of change.
+  const isOffRouteRef   = useRef(false);
   const prevRouteKeyRef = useRef(null);
+  useEffect(() => { isOffRouteRef.current = isOffRoute; }, [isOffRoute]);
   useEffect(() => {
     if (!isNavigating || !currentRoute) return;
     const c = currentRoute.geometry?.coordinates;
     const key = c ? `${c[0]?.join(',')}-${c.at(-1)?.join(',')}` : '';
     if (prevRouteKeyRef.current && prevRouteKeyRef.current !== key) {
+      // Always sync step index to new route (old index may be out of range)
       setCurrentStepIdx(0);
-      setIsOffRoute(false);
-      speak('Percorso ricalcolato');
+      // Only announce if we were genuinely off-route
+      if (isOffRouteRef.current) {
+        setIsOffRoute(false);
+        speak('Percorso ricalcolato');
+      }
     }
     prevRouteKeyRef.current = key;
   }, [currentRoute, isNavigating, speak]);
