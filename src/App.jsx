@@ -6,34 +6,42 @@ import POIDetailsPanel from './components/POIDetailsPanel';
 import MapControls from './components/MapControls';
 import TransportModeSelector from './components/TransportModeSelector';
 import NavigationHUD from './components/NavigationHUD';
+import ArrivedOverlay from './components/ArrivedOverlay';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useCompassHeading } from './hooks/useCompassHeading';
 import { useOSRM } from './hooks/useOSRM';
-import { getModeById, haversineMeters } from './data/mockData';
+import { useSpeech } from './hooks/useSpeech';
+import { getModeById, haversineMeters, maneuverToItalian, formatDistance } from './data/mockData';
 
 export default function App() {
   const [destination,    setDestination]    = useState(null);   // {name, address, coords, emoji}
+  const [navDestCoords,  setNavDestCoords]  = useState(null);   // kept during navigation for OSRM
+  const [navDestName,    setNavDestName]    = useState('');
   const [selectedModeId, setSelectedModeId] = useState('car');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [is3DMode,       setIs3DMode]       = useState(true);
   const [isNavigating,   setIsNavigating]   = useState(false);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isOffRoute,     setIsOffRoute]     = useState(false);
+  const [hasArrived,     setHasArrived]     = useState(false);
   const mapApiRef = useRef(null);
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
   const { location: userLocation, heading: gpsHeading, speed, error: gpsError } = useGeolocation();
   const compassHeading = useCompassHeading();
-  // GPS heading is valid only when moving; compass works stationary
   const userHeading = gpsHeading ?? compassHeading;
 
-  // ── Real routing — 3 OSRM profiles fetched in parallel ─────────────────
-  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, destination?.coords, 'driving');
-  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, destination?.coords, 'foot');
-  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, destination?.coords, 'bike');
+  // ── Voice ───────────────────────────────────────────────────────────────
+  const { speak, cancel } = useSpeech();
+
+  // ── Real routing — OSRM keeps fetching even during navigation ──────────
+  // navDestCoords persists through navigation so OSRM can reroute if off-path
+  const routingCoords = navDestCoords ?? destination?.coords;
+  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, routingCoords, 'driving');
+  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, routingCoords, 'foot');
+  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, routingCoords, 'bike');
 
   const routesByProfile = { driving: drivingRoute, foot: footRoute, bike: bikeRoute };
-
   const profileMap      = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
   const currentProfile  = profileMap[selectedModeId];
   const currentRoute    = routesByProfile[currentProfile];
@@ -41,16 +49,17 @@ export default function App() {
 
   const handleMapLoaded = useCallback((mapApi) => { mapApiRef.current = mapApi; }, []);
 
-  // ── Destination selected from search or POI tap ─────────────────────────
+  // ── Destination selected ────────────────────────────────────────────────
   const handleDestinationSelect = useCallback((dest) => {
     setDestination(dest);
     setIsSearchActive(false);
     setIsNavigating(false);
     setCurrentStepIdx(0);
     setIsOffRoute(false);
+    setNavDestCoords(null);
+    setHasArrived(false);
 
     if (userLocation) {
-      // Fit both user + destination in view
       const west  = Math.min(userLocation[0], dest.coords[0]);
       const east  = Math.max(userLocation[0], dest.coords[0]);
       const south = Math.min(userLocation[1], dest.coords[1]);
@@ -66,7 +75,7 @@ export default function App() {
     }
   }, [userLocation, is3DMode]);
 
-  // ── Long press → reverse geocode → set destination ───────────────────────
+  // ── Long press → reverse geocode → set destination ─────────────────────
   const handleLongPress = useCallback(async ([lng, lat]) => {
     try {
       const res  = await fetch(
@@ -89,10 +98,8 @@ export default function App() {
 
   const handlePOITap = useCallback((poi) => {
     handleDestinationSelect({
-      name: poi.name,
-      address: poi.address ?? '',
-      coords: poi.coords,
-      emoji: poi.emoji,
+      name: poi.name, address: poi.address ?? '',
+      coords: poi.coords, emoji: poi.emoji,
     });
   }, [handleDestinationSelect]);
 
@@ -100,76 +107,142 @@ export default function App() {
     setDestination(null);
     setIsNavigating(false);
     setCurrentStepIdx(0);
+    setNavDestCoords(null);
   }, []);
 
   const handleModeChange = useCallback((modeId) => {
     setSelectedModeId(modeId);
   }, []);
 
-  // ── Start navigation ─────────────────────────────────────────────────────
+  // ── Start navigation ────────────────────────────────────────────────────
   const handleStartNavigation = useCallback(() => {
-    if (!currentRoute) return;
+    if (!currentRoute || !destination) return;
+    const coords = destination.coords;
+    const name   = destination.name;
+    setNavDestCoords(coords);
+    setNavDestName(name);
     setIsNavigating(true);
     setCurrentStepIdx(0);
-    // Destination panel collapses — NavigationHUD takes over
-    setDestination(null);
-  }, [currentRoute]);
+    setHasArrived(false);
+    setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
-  const handleStopNavigation = useCallback(() => {
+    // Speak the first maneuver
+    const steps = currentRoute.legs?.[0]?.steps ?? [];
+    if (steps[0]) {
+      const instruction = maneuverToItalian(
+        steps[0].maneuver?.type, steps[0].maneuver?.modifier, steps[0].name ?? '',
+      );
+      speak(`Navigazione avviata. ${instruction}`);
+    }
+  }, [currentRoute, destination, speak]);
+
+  // ── Stop navigation ─────────────────────────────────────────────────────
+  const handleStopNavigation = useCallback((arrived = false) => {
     setIsNavigating(false);
     setCurrentStepIdx(0);
     setIsOffRoute(false);
-    // Re-center on user
+    setNavDestCoords(null);
+    cancel();
+    if (arrived) {
+      setHasArrived(true);
+      speak('Sei arrivato a destinazione');
+    }
     if (userLocation) {
       mapApiRef.current?.flyTo({
-        center: userLocation,
-        zoom: 15,
-        pitch: is3DMode ? 52 : 0,
-        bearing: 0,
-        duration: 1200,
+        center: userLocation, zoom: 15,
+        pitch: is3DMode ? 52 : 0, bearing: 0, duration: 1200,
       });
     }
-  }, [userLocation, is3DMode]);
+  }, [userLocation, is3DMode, speak, cancel]);
 
-  // ── Auto-advance steps during navigation ─────────────────────────────────
+  // ── Auto-advance steps ──────────────────────────────────────────────────
   useEffect(() => {
     if (!isNavigating || !userLocation || !currentRoute) return;
     const steps = currentRoute.legs?.[0]?.steps ?? [];
     if (currentStepIdx >= steps.length - 1) return;
-
-    const nextStep = steps[currentStepIdx + 1];
-    const nextLoc  = nextStep?.maneuver?.location;
+    const nextLoc = steps[currentStepIdx + 1]?.maneuver?.location;
     if (!nextLoc) return;
-
-    const dist = haversineMeters(userLocation, nextLoc);
-    if (dist < 30) {
+    if (haversineMeters(userLocation, nextLoc) < 30) {
       setCurrentStepIdx((i) => i + 1);
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx]);
 
-  // ── Off-route detection ──────────────────────────────────────────────────
+  // ── Voice on step change ────────────────────────────────────────────────
+  const prevStepRef = useRef(-1);
+  useEffect(() => {
+    if (!isNavigating || !currentRoute || currentStepIdx === prevStepRef.current) return;
+    prevStepRef.current = currentStepIdx;
+    const steps = currentRoute.legs?.[0]?.steps ?? [];
+    const step  = steps[currentStepIdx];
+    if (!step) return;
+    speak(maneuverToItalian(step.maneuver?.type, step.maneuver?.modifier, step.name ?? ''));
+  }, [currentStepIdx, isNavigating, currentRoute, speak]);
+
+  // ── Voice turn warnings ─────────────────────────────────────────────────
+  const spokenAt200Ref = useRef(false);
+  const spokenAt60Ref  = useRef(false);
+  useEffect(() => {
+    if (!isNavigating || !userLocation || !currentRoute) return;
+    const steps    = currentRoute.legs?.[0]?.steps ?? [];
+    const nextStep = steps[currentStepIdx + 1];
+    if (!nextStep) return;
+    const nextLoc = nextStep.maneuver?.location;
+    if (!nextLoc) return;
+    const dist = haversineMeters(userLocation, nextLoc);
+    const instr = maneuverToItalian(
+      nextStep.maneuver?.type, nextStep.maneuver?.modifier, nextStep.name ?? '',
+    );
+
+    if (dist < 200 && dist >= 60 && !spokenAt200Ref.current) {
+      spokenAt200Ref.current = true;
+      spokenAt60Ref.current  = false;
+      speak(`Tra ${formatDistance(dist)}, ${instr}`);
+    } else if (dist < 60 && !spokenAt60Ref.current) {
+      spokenAt60Ref.current  = true;
+      speak(instr, { urgent: true });
+    } else if (dist >= 200) {
+      spokenAt200Ref.current = false;
+      spokenAt60Ref.current  = false;
+    }
+  }, [userLocation, isNavigating, currentRoute, currentStepIdx, speak]);
+
+  // ── Off-route detection ─────────────────────────────────────────────────
   useEffect(() => {
     if (!isNavigating || !userLocation || !currentRoute) { setIsOffRoute(false); return; }
     const coords = currentRoute.geometry?.coordinates ?? [];
     if (!coords.length) return;
-    let minDist = Infinity;
+    let min = Infinity;
     for (const c of coords) {
       const d = haversineMeters(userLocation, c);
-      if (d < minDist) minDist = d;
+      if (d < min) min = d;
     }
-    setIsOffRoute(minDist > 75);
+    setIsOffRoute(min > 75);
   }, [userLocation, isNavigating, currentRoute]);
 
-  // ── Arrived at destination ───────────────────────────────────────────────
+  // ── Auto-reset step index on reroute ────────────────────────────────────
+  const prevRouteKeyRef = useRef(null);
   useEffect(() => {
-    if (!isNavigating || !currentRoute || !userLocation || !destination) return;
-    const dist = haversineMeters(userLocation, destination.coords ?? currentRoute.geometry.coordinates.at(-1));
-    if (dist < 20) {
-      handleStopNavigation();
+    if (!isNavigating || !currentRoute) return;
+    const c = currentRoute.geometry?.coordinates;
+    const key = c ? `${c[0]?.join(',')}-${c.at(-1)?.join(',')}` : '';
+    if (prevRouteKeyRef.current && prevRouteKeyRef.current !== key) {
+      setCurrentStepIdx(0);
+      setIsOffRoute(false);
+      speak('Percorso ricalcolato');
     }
-  }, [userLocation, isNavigating]);
+    prevRouteKeyRef.current = key;
+  }, [currentRoute, isNavigating, speak]);
 
-  // ── Map controls ─────────────────────────────────────────────────────────
+  // ── Arrival detection (uses navDestCoords — not destination which is null) ─
+  useEffect(() => {
+    if (!isNavigating || !currentRoute || !userLocation || !navDestCoords) return;
+    const endCoord = navDestCoords;
+    if (haversineMeters(userLocation, endCoord) < 30) {
+      handleStopNavigation(true);
+    }
+  }, [userLocation, isNavigating, currentRoute, navDestCoords]);
+
+  // ── Map controls ────────────────────────────────────────────────────────
   const handleToggle3D = useCallback(() => {
     setIs3DMode((prev) => {
       const next = !prev;
@@ -181,15 +254,12 @@ export default function App() {
   const handleMyLocation = useCallback(() => {
     if (!userLocation) return;
     mapApiRef.current?.flyTo({
-      center: userLocation,
-      zoom: 15.5,
-      pitch: is3DMode ? 52 : 0,
-      bearing: userHeading ?? 0,
-      duration: 1200,
+      center: userLocation, zoom: 15.5,
+      pitch: is3DMode ? 52 : 0, bearing: userHeading ?? 0, duration: 1200,
     });
   }, [userLocation, userHeading, is3DMode]);
 
-  // ── Stored destination for NavigationHUD (doesn't clear when navigating) ─
+  // ── Keep destination marker visible during navigation ───────────────────
   const navDestRef = useRef(null);
   useEffect(() => {
     if (destination) navDestRef.current = destination;
@@ -214,7 +284,7 @@ export default function App() {
       {/* UI overlay */}
       <div className="absolute inset-0 pointer-events-none">
 
-        {/* Search bar — hidden during navigation */}
+        {/* Search bar */}
         <AnimatePresence>
           {!isNavigating && (
             <div className="pointer-events-auto">
@@ -245,7 +315,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Destination panel (not shown during navigation) */}
+        {/* Destination panel */}
         <AnimatePresence>
           {!isNavigating && (
             <div className="pointer-events-auto">
@@ -262,7 +332,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Transport mode bar — hidden during navigation and search */}
+        {/* Transport mode bar */}
         <AnimatePresence>
           {!isNavigating && !isSearchActive && (
             <div className="pointer-events-auto">
@@ -288,9 +358,19 @@ export default function App() {
                 speed={speed}
                 isOffRoute={isOffRoute}
                 userLocation={userLocation}
-                onStop={handleStopNavigation}
+                onStop={() => handleStopNavigation(false)}
               />
             </div>
+          )}
+        </AnimatePresence>
+
+        {/* Arrived overlay */}
+        <AnimatePresence>
+          {hasArrived && (
+            <ArrivedOverlay
+              destName={navDestName}
+              onDismiss={() => setHasArrived(false)}
+            />
           )}
         </AnimatePresence>
       </div>

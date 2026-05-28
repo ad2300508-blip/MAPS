@@ -194,10 +194,22 @@ export default function MapView({
 
   const hasRoute = routeCoords.length >= 2;
 
+  // During navigation, trim route to only show the remaining portion
+  const trimmedCoords = useMemo(() => {
+    if (!isNavigating || !userLocation || routeCoords.length < 2) return routeCoords;
+    let minDist = Infinity, closestIdx = 0;
+    for (let i = 0; i < routeCoords.length; i++) {
+      const d = haversineMeters(userLocation, routeCoords[i]);
+      if (d < minDist) { minDist = d; closestIdx = i; }
+    }
+    const sliced = routeCoords.slice(Math.max(0, closestIdx - 1));
+    return sliced.length >= 2 ? sliced : routeCoords;
+  }, [routeCoords, userLocation, isNavigating]);
+
   // Slice coordinates to the animated count
   const visibleCoords = useMemo(
-    () => hasRoute ? routeCoords.slice(0, Math.max(2, visibleCount)) : null,
-    [routeCoords, visibleCount, hasRoute],
+    () => hasRoute ? trimmedCoords.slice(0, Math.max(2, visibleCount)) : null,
+    [trimmedCoords, visibleCount, hasRoute],
   );
 
   // Separate GeoJSONs for the two layers — avoids lineMetrics/line-gradient
