@@ -123,7 +123,7 @@ export default function App() {
   const handlePOITap = useCallback((poi) => {
     handleDestinationSelect({
       name: poi.name, address: poi.address ?? '',
-      coords: poi.coords, emoji: poi.emoji,
+      coords: poi.coords, emoji: poi.emoji, type: poi.type,
     });
   }, [handleDestinationSelect]);
 

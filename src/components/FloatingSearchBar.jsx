@@ -102,6 +102,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
       address: item.address   || '',
       coords:  [parseFloat(item.lon), parseFloat(item.lat)],
       emoji:   item.emoji     || '📍',
+      type:    item.type      || '',
     };
 
     // Save to recent

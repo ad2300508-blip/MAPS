@@ -177,6 +177,14 @@ export default function POIDetailsPanel({
                     <span className="text-2xl leading-none">{destination.emoji ?? '📍'}</span>
                   </div>
                   <h2 className="text-xl font-bold text-white leading-tight">{destination.name}</h2>
+                  {destination.type && (
+                    <span
+                      className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full capitalize"
+                      style={{ background: 'rgba(255,255,255,0.07)', color: '#64748b' }}
+                    >
+                      {destination.type.replace(/_/g, ' ')}
+                    </span>
+                  )}
                   {destination.address && (
                     <div className="flex items-start gap-1.5 mt-1.5">
                       <MapPin size={13} className="text-slate-600 mt-0.5 flex-shrink-0" />

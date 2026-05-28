@@ -6,8 +6,17 @@ import { getModeById, haversineMeters } from '../data/mockData';
 import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-const INITIAL_VIEW = { longitude: 12, latitude: 45, zoom: 5, pitch: 0, bearing: 0 };
 const SEED = 3;
+
+// Start near the user's last known position (much better UX on re-launch)
+const INITIAL_VIEW = (() => {
+  try {
+    const lng = parseFloat(localStorage.getItem('maps-last-lng') ?? '');
+    const lat = parseFloat(localStorage.getItem('maps-last-lat') ?? '');
+    if (!isNaN(lng) && !isNaN(lat)) return { longitude: lng, latitude: lat, zoom: 12, pitch: 0, bearing: 0 };
+  } catch { /* private browsing */ }
+  return { longitude: 12, latitude: 45, zoom: 5, pitch: 0, bearing: 0 };
+})();
 
 // ─── Interpolate geometry into micro-segments for smooth animation ────────
 function interpolateLine(coords, targetPts) {
@@ -296,6 +305,15 @@ export default function MapView({
     onMapLoaded?.(mapRef.current);
     setMapReady(true);
   }, [onMapLoaded]);
+
+  // Persist last GPS position so next launch starts near the user
+  useEffect(() => {
+    if (!userLocation) return;
+    try {
+      localStorage.setItem('maps-last-lng', userLocation[0]);
+      localStorage.setItem('maps-last-lat', userLocation[1]);
+    } catch { /* private browsing */ }
+  }, [userLocation]);
 
   // Fly to user once on GPS acquisition
   useEffect(() => {
