@@ -328,7 +328,7 @@ export default function MapView({
     if (!isNavigating || !isFollowing || !userLocation || !mapReady) return;
     mapRef.current?.easeTo({
       center: userLocation, bearing: userHeading ?? 0,
-      zoom: 17, pitch: 60, duration: 600,
+      zoom: 17, pitch: 60, duration: 400,
     });
   }, [isNavigating, isFollowing, userLocation, userHeading, mapReady]);
 

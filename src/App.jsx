@@ -190,7 +190,7 @@ export default function App() {
     if (currentStepIdx >= steps.length - 1) return;
     const nextLoc = steps[currentStepIdx + 1]?.maneuver?.location;
     if (!nextLoc) return;
-    if (haversineMeters(userLocation, nextLoc) < 30) {
+    if (haversineMeters(userLocation, nextLoc) < 50) {
       setCurrentStepIdx((i) => i + 1);
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx]);
@@ -259,7 +259,8 @@ export default function App() {
       const d = haversineMeters(userLocation, c);
       if (d < min) min = d;
     }
-    const offNow = min > 75;
+    const threshold = Math.max(75, (accuracy ?? 0) + 50);
+    const offNow = min > threshold;
     setIsOffRoute(offNow);
     if (offNow && !prevOffRouteRef.current) {
       speak('Fuori percorso. Ricalcolo in corso.');
@@ -464,6 +465,7 @@ export default function App() {
                 speed={speed}
                 isOffRoute={isOffRoute}
                 userLocation={userLocation}
+                userAccuracy={accuracy}
                 destName={navDestName}
                 onStop={() => handleStopNavigation(false)}
               />

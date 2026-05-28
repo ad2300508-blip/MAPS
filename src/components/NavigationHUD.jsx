@@ -26,6 +26,7 @@ export default function NavigationHUD({
   isOffRoute,
   onStop,
   userLocation,
+  userAccuracy,
   destName,
 }) {
   if (!route) return null;
@@ -68,6 +69,19 @@ export default function NavigationHUD({
       transition={{ type: 'spring', stiffness: 320, damping: 32 }}
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
     >
+      {/* Poor GPS banner */}
+      {!isOffRoute && userAccuracy != null && userAccuracy > 50 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-3 mb-2 px-4 py-2 rounded-2xl flex items-center gap-2"
+          style={{ background: 'rgba(251,191,36,0.12)', border: '1.5px solid rgba(251,191,36,0.3)' }}
+        >
+          <span className="text-amber-400 text-xs">📡</span>
+          <span className="text-xs font-semibold text-amber-400">GPS debole — precisione {Math.round(userAccuracy)} m</span>
+        </motion.div>
+      )}
+
       {/* Off-route banner */}
       {isOffRoute && (
         <motion.div
