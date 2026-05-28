@@ -24,6 +24,7 @@ export default function App() {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isOffRoute,     setIsOffRoute]     = useState(false);
   const [hasArrived,     setHasArrived]     = useState(false);
+  const [mapCentered,    setMapCentered]    = useState(true);
   const mapApiRef = useRef(null);
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
@@ -146,6 +147,7 @@ export default function App() {
     if (arrived) {
       setHasArrived(true);
       speak('Sei arrivato a destinazione');
+      navigator.vibrate?.([100, 80, 100, 80, 200]);
     }
     if (userLocation) {
       mapApiRef.current?.flyTo({
@@ -178,7 +180,8 @@ export default function App() {
     speak(maneuverToItalian(step.maneuver?.type, step.maneuver?.modifier, step.name ?? ''));
   }, [currentStepIdx, isNavigating, currentRoute, speak]);
 
-  // ── Voice turn warnings ─────────────────────────────────────────────────
+  // ── Voice + haptic turn warnings ────────────────────────────────────────
+  const vibrate = useCallback((pattern) => { navigator.vibrate?.(pattern); }, []);
   const spokenAt200Ref = useRef(false);
   const spokenAt60Ref  = useRef(false);
   useEffect(() => {
@@ -197,14 +200,16 @@ export default function App() {
       spokenAt200Ref.current = true;
       spokenAt60Ref.current  = false;
       speak(`Tra ${formatDistance(dist)}, ${instr}`);
+      vibrate([60]);
     } else if (dist < 60 && !spokenAt60Ref.current) {
       spokenAt60Ref.current  = true;
       speak(instr, { urgent: true });
+      vibrate([80, 60, 80]);
     } else if (dist >= 200) {
       spokenAt200Ref.current = false;
       spokenAt60Ref.current  = false;
     }
-  }, [userLocation, isNavigating, currentRoute, currentStepIdx, speak]);
+  }, [userLocation, isNavigating, currentRoute, currentStepIdx, speak, vibrate]);
 
   // ── Off-route detection ─────────────────────────────────────────────────
   useEffect(() => {
@@ -259,6 +264,48 @@ export default function App() {
     });
   }, [userLocation, userHeading, is3DMode]);
 
+  // ── Android back button ─────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = () => {
+      if (hasArrived)      { setHasArrived(false); return; }
+      if (isNavigating)    { handleStopNavigation(false); return; }
+      if (destination)     { handleClosePanel(); return; }
+      if (isSearchActive)  { setIsSearchActive(false); }
+    };
+    document.addEventListener('backbutton', handler);
+    return () => document.removeEventListener('backbutton', handler);
+  }, [hasArrived, isNavigating, destination, isSearchActive]);
+
+  // ── Map pan detection: mark map as off-center ────────────────────────────
+  const handleUserPan = useCallback(() => {
+    if (isNavigating) setMapCentered(false);
+  }, [isNavigating]);
+
+  // Re-center during navigation also resets the flag
+  const handleReCenter = useCallback(() => {
+    setMapCentered(true);
+    if (userLocation) {
+      mapApiRef.current?.easeTo({
+        center: userLocation, bearing: userHeading ?? 0,
+        zoom: 17, pitch: 60, duration: 700,
+      });
+    }
+  }, [userLocation, userHeading]);
+
+  // When navigation follow-camera fires, mark as centered
+  const prevNavLocRef = useRef(null);
+  useEffect(() => {
+    if (!isNavigating || !userLocation) return;
+    if (!mapCentered) return; // user panned — don't override
+    if (prevNavLocRef.current === userLocation) return;
+    prevNavLocRef.current = userLocation;
+  }, [isNavigating, userLocation, mapCentered]);
+
+  // Reset centered flag when navigation starts
+  useEffect(() => {
+    if (isNavigating) setMapCentered(true);
+  }, [isNavigating]);
+
   // ── Keep destination marker visible during navigation ───────────────────
   const navDestRef = useRef(null);
   useEffect(() => {
@@ -279,6 +326,7 @@ export default function App() {
         isNavigating={isNavigating}
         onPOITap={handlePOITap}
         onLongPress={handleLongPress}
+        onUserPan={handleUserPan}
       />
 
       {/* UI overlay */}
@@ -361,6 +409,35 @@ export default function App() {
                 onStop={() => handleStopNavigation(false)}
               />
             </div>
+          )}
+        </AnimatePresence>
+
+        {/* Re-center button — shown when user pans away during navigation */}
+        <AnimatePresence>
+          {isNavigating && !mapCentered && (
+            <motion.button
+              className="absolute pointer-events-auto"
+              style={{ bottom: 220, right: 20, zIndex: 45 }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleReCenter}
+            >
+              <div
+                className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
+                style={{
+                  background: 'rgba(12,12,24,0.95)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1.5px solid rgba(76,201,240,0.4)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                }}
+              >
+                <span style={{ fontSize: 16 }}>🎯</span>
+                <span className="text-xs font-semibold" style={{ color: '#4cc9f0' }}>Ricentra</span>
+              </div>
+            </motion.button>
           )}
         </AnimatePresence>
 

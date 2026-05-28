@@ -54,7 +54,7 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
   return (
     <div
       className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
-      style={{ zIndex: 20 }}
+      style={{ zIndex: 40 }}
     >
       {/* Zoom in */}
       <ControlButton icon={Plus} label="Zoom avanti" onClick={zoomIn} />

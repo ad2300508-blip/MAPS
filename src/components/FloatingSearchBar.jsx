@@ -110,9 +110,9 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   };
 
   const parseResult = (r) => {
-    const parts = r.display_name.split(', ');
-    const nameShort = parts.slice(0, 2).join(', ');
-    const address   = parts.slice(2, 5).join(', ');
+    const parts     = (r.display_name ?? '').split(', ').filter(Boolean);
+    const nameShort = parts.length > 0 ? parts.slice(0, 2).join(', ') : (r.name ?? 'Luogo');
+    const address   = parts.length > 2 ? parts.slice(2, 5).join(', ') : '';
     const emoji     = placeEmoji(r.class, r.type);
     return { ...r, nameShort, address, emoji };
   };
@@ -132,7 +132,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
         )}
       </AnimatePresence>
 
-      <div className="absolute top-5 left-1/2 -translate-x-1/2 w-full max-w-xl px-4 z-20">
+      <div className="absolute top-5 left-1/2 -translate-x-1/2 w-full max-w-xl px-4 z-30">
         <motion.div
           className="relative glass-bright rounded-2xl overflow-hidden"
           animate={{
@@ -185,7 +185,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                 className="overflow-hidden"
               >
                 <div className="mx-4 h-px bg-white/6 mb-1" />
-                <div className="px-1 pb-2 max-h-72 overflow-y-auto">
+                <div className="px-1 pb-2 max-h-[55dvh] overflow-y-auto">
                   {results.length > 0 ? (
                     <>
                       <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">

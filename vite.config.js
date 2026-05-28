@@ -61,7 +61,7 @@ export default defineConfig({
         ],
         screenshots: [
           {
-            label: 'Mappa 3D di Parigi con percorso neon',
+            label: 'Navigazione 3D con HUD e indicazioni in italiano',
             sizes: '390x844',
             type: 'image/png',
             form_factor: 'narrow',

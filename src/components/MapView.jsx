@@ -167,6 +167,7 @@ export default function MapView({
   isNavigating,
   onPOITap,
   onLongPress,
+  onUserPan,
 }) {
   const mapRef  = useRef(null);
   const animRef = useRef(null);
@@ -319,6 +320,18 @@ export default function MapView({
     if (!mapReady || isNavigating) return;
     mapRef.current?.easeTo({ pitch: is3DMode ? 52 : 0, duration: 850 });
   }, [is3DMode, mapReady, isNavigating]);
+
+  // Detect user manually panning during navigation
+  useEffect(() => {
+    if (!mapReady || !onUserPan) return;
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const onMoveStart = (e) => {
+      if (e.originalEvent) onUserPan(); // user-initiated (not programmatic)
+    };
+    map.on('movestart', onMoveStart);
+    return () => map.off('movestart', onMoveStart);
+  }, [mapReady, onUserPan]);
 
   // Long-press → fire onLongPress with [lng, lat]
   useEffect(() => {
