@@ -165,6 +165,7 @@ export default function MapView({
   selectedModeId,
   is3DMode,
   isNavigating,
+  isFollowing,
   onPOITap,
   onLongPress,
   onUserPan,
@@ -306,14 +307,14 @@ export default function MapView({
     animateRoute(routeCoords);
   }, [routeCoords, mapReady, animateRoute]);
 
-  // Navigation follow mode
+  // Navigation follow mode — only when map is centered (user hasn't panned away)
   useEffect(() => {
-    if (!isNavigating || !userLocation || !mapReady) return;
+    if (!isNavigating || !isFollowing || !userLocation || !mapReady) return;
     mapRef.current?.easeTo({
       center: userLocation, bearing: userHeading ?? 0,
       zoom: 17, pitch: 60, duration: 600,
     });
-  }, [isNavigating, userLocation, userHeading, mapReady]);
+  }, [isNavigating, isFollowing, userLocation, userHeading, mapReady]);
 
   // 3D pitch toggle
   useEffect(() => {

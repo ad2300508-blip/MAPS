@@ -1,4 +1,4 @@
-// Transport mode config — routes now come from OSRM, not mock data
+// Transport mode config — routes come from OSRM
 export const TRANSPORT_MODES = [
   {
     id: 'car',
@@ -10,8 +10,8 @@ export const TRANSPORT_MODES = [
     gradientStart: '#4361ee',
     gradientEnd: '#4cc9f0',
     lineWidth: 7,
-    co2PerKm: 120,  // g/km
-    costPerKm: 0.20, // €/km (fuel)
+    co2PerKm: 120,    // g/km average passenger car
+    costPerKm: 0.20,  // €/km fuel+wear
   },
   {
     id: 'walk',
@@ -44,14 +44,14 @@ export const TRANSPORT_MODES = [
     label: 'Metrò',
     shortLabel: 'Metrò',
     icon: '🚇',
-    osrmProfile: 'driving',
+    osrmProfile: 'driving',  // approximate with driving (no free transit GTFS API)
     color: '#a855f7',
     gradientStart: '#7c3aed',
     gradientEnd: '#a855f7',
     lineWidth: 6,
     co2PerKm: 14,
-    costPerKm: 0,   // shown as flat fare
-    flatFare: 1.90,
+    costPerKm: 0,
+    // No flat fare — varies by city; show "Variabile" in UI
   },
   {
     id: 'moto',
@@ -74,8 +74,9 @@ export const getModeById = (id) =>
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function formatDuration(seconds) {
-  if (!seconds) return '—';
+  if (seconds == null || seconds <= 0) return '—';
   const m = Math.round(seconds / 60);
+  if (m < 1)  return '< 1 min';
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
   const rem = m % 60;
@@ -83,25 +84,26 @@ export function formatDuration(seconds) {
 }
 
 export function formatDistance(meters) {
-  if (!meters) return '—';
-  if (meters < 1000) return `${Math.round(meters)} m`;
+  if (meters == null) return '—';
+  if (meters < 10)   return `${Math.round(meters)} m`;
+  if (meters < 1000) return `${Math.round(meters / 5) * 5} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
 export function formatCO2(meters, mode) {
-  const kg = (meters / 1000) * mode.co2PerKm / 1000;
+  const kg = (meters / 1000) * (mode.co2PerKm ?? 0) / 1000;
   if (kg === 0) return '0 kg';
-  return `${kg.toFixed(2)} kg`;
+  return kg < 0.1 ? `${Math.round(kg * 1000)} g` : `${kg.toFixed(2)} kg`;
 }
 
 export function formatCost(meters, mode) {
-  if (mode.flatFare != null) return `€${mode.flatFare.toFixed(2)}`;
-  const cost = (meters / 1000) * mode.costPerKm;
+  if (mode.id === 'transit') return 'Variabile';
+  const cost = (meters / 1000) * (mode.costPerKm ?? 0);
   if (cost === 0) return 'Gratis';
   return `~€${cost.toFixed(2)}`;
 }
 
-// Haversine distance between two [lng, lat] points, returns meters
+// Haversine distance between two [lng, lat] points → meters
 export function haversineMeters([lng1, lat1], [lng2, lat2]) {
   const R = 6_371_000;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -117,70 +119,116 @@ export function haversineMeters([lng1, lat1], [lng2, lat2]) {
 // Convert OSRM maneuver to Italian instruction
 export function maneuverToItalian(type, modifier, name) {
   const street = name ? ` su ${name}` : '';
-  if (type === 'depart') return `Parti${street}`;
-  if (type === 'arrive') return 'Sei arrivato/a a destinazione';
-  if (type === 'continue') return `Continua${street}`;
-  if (type === 'merge')    return `Immettiti${street}`;
-  if (type === 'on ramp')  return `Prendi la rampa${street}`;
-  if (type === 'off ramp') return `Esci${street}`;
-  if (type === 'fork') {
-    if (modifier?.includes('left'))  return `Tieni la sinistra allo svincolo`;
-    if (modifier?.includes('right')) return `Tieni la destra allo svincolo`;
-    return `Prendi la biforcazione`;
+  switch (type) {
+    case 'depart':       return `Parti${street}`;
+    case 'arrive':       return 'Sei arrivato/a a destinazione';
+    case 'continue':     return `Continua${street}`;
+    case 'new name':     return `Continua${street}`;
+    case 'merge':        return `Immettiti${street}`;
+    case 'on ramp':      return `Prendi la rampa${street}`;
+    case 'off ramp':     return modifier?.includes('left')
+                           ? `Esci a sinistra${street}`
+                           : modifier?.includes('right')
+                           ? `Esci a destra${street}`
+                           : `Esci${street}`;
+    case 'end of road':  return modifier?.includes('left')
+                           ? `Fine strada — svolta a sinistra${street}`
+                           : `Fine strada — svolta a destra${street}`;
+    case 'use lane':     return `Usa la corsia corretta${street}`;
+    case 'fork':
+      if (modifier?.includes('left'))  return 'Tieni la sinistra allo svincolo';
+      if (modifier?.includes('right')) return 'Tieni la destra allo svincolo';
+      return 'Vai dritto allo svincolo';
+    case 'roundabout':
+    case 'rotary': {
+      const exit = modifier ? ` (${modifier})` : '';
+      return `Entra nella rotonda${exit}`;
+    }
+    case 'roundabout turn':
+      return `Nella rotonda, ${modifier?.includes('left') ? 'tieni la sinistra' : 'tieni la destra'}`;
+    case 'exit roundabout':
+    case 'exit rotary':
+      return `Esci dalla rotonda${street}`;
+    case 'turn':
+      if (modifier === 'left')         return `Svolta a sinistra${street}`;
+      if (modifier === 'right')        return `Svolta a destra${street}`;
+      if (modifier === 'sharp left')   return `Svolta nettamente a sinistra`;
+      if (modifier === 'sharp right')  return `Svolta nettamente a destra`;
+      if (modifier === 'slight left')  return `Tieni la sinistra${street}`;
+      if (modifier === 'slight right') return `Tieni la destra${street}`;
+      if (modifier === 'straight')     return `Continua dritto${street}`;
+      return `Svolta${street}`;
+    case 'notification':
+      return `Attenzione${street}`;
+    default:
+      return `Continua${street || ' dritto'}`;
   }
-  if (type === 'roundabout' || type === 'rotary') return `Entra nella rotonda`;
-  if (type === 'turn') {
-    if (modifier === 'left')        return `Svolta a sinistra${street}`;
-    if (modifier === 'right')       return `Svolta a destra${street}`;
-    if (modifier === 'sharp left')  return `Svolta nettamente a sinistra`;
-    if (modifier === 'sharp right') return `Svolta nettamente a destra`;
-    if (modifier === 'slight left') return `Tieni la sinistra${street}`;
-    if (modifier === 'slight right')return `Tieni la destra${street}`;
-    if (modifier === 'straight')    return `Continua dritto${street}`;
-  }
-  if (type === 'new name') return `Continua${street}`;
-  return `Continua${street || ' dritto'}`;
 }
 
-// Maneuver type → arrow character
+// Maneuver type → direction icon
 export function maneuverIcon(type, modifier) {
-  if (type === 'arrive')   return '🏁';
-  if (type === 'depart')   return '▶';
-  if (type === 'roundabout' || type === 'rotary') return '⟳';
-  if (type === 'turn') {
-    if (modifier === 'left')         return '↰';
-    if (modifier === 'right')        return '↱';
-    if (modifier === 'sharp left')   return '↺';
-    if (modifier === 'sharp right')  return '↻';
-    if (modifier === 'slight left')  return '↖';
-    if (modifier === 'slight right') return '↗';
-  }
+  if (type === 'arrive')                return '🏁';
+  if (type === 'depart')                return '▶';
+  if (type === 'roundabout' || type === 'rotary' ||
+      type === 'exit roundabout' || type === 'exit rotary') return '↻';
+  if (type === 'on ramp')               return '↗';
+  if (type === 'off ramp')              return modifier?.includes('left') ? '↙' : '↘';
+  if (type === 'end of road')           return modifier?.includes('left') ? '←' : '→';
   if (type === 'fork') {
-    if (modifier?.includes('left'))  return '↙';
-    if (modifier?.includes('right')) return '↘';
+    if (modifier?.includes('left'))     return '↙';
+    if (modifier?.includes('right'))    return '↘';
+    return '↑';
   }
-  if (type === 'merge') return '↗';
+  if (type === 'merge')                 return '↑';
+  if (type === 'turn' || type === 'end of road') {
+    if (modifier === 'left')            return '←';
+    if (modifier === 'right')           return '→';
+    if (modifier === 'sharp left')      return '↺';
+    if (modifier === 'sharp right')     return '↻';
+    if (modifier === 'slight left')     return '↖';
+    if (modifier === 'slight right')    return '↗';
+  }
   return '↑';
 }
 
-// Pick emoji for Nominatim OSM class/type
+// Pick emoji for OSM class/type
 export function placeEmoji(osmClass, osmType) {
-  if (osmClass === 'tourism')     return '🏛️';
   if (osmClass === 'amenity') {
-    if (osmType === 'restaurant')  return '🍽️';
-    if (osmType === 'cafe')        return '☕';
-    if (osmType === 'hospital')    return '🏥';
-    if (osmType === 'pharmacy')    return '💊';
-    if (osmType === 'fuel')        return '⛽';
-    if (osmType === 'parking')     return '🅿️';
-    if (osmType === 'bank')        return '🏦';
-    if (osmType === 'school' || osmType === 'university') return '🎓';
-    return '📍';
+    const map = {
+      restaurant: '🍽️', cafe: '☕', bar: '🍺', pub: '🍺',
+      fast_food: '🍔', ice_cream: '🍦', bakery: '🥐',
+      hospital: '🏥', pharmacy: '💊', clinic: '🏥',
+      fuel: '⛽', parking: '🅿️',
+      bank: '🏦', atm: '💳',
+      cinema: '🎬', theatre: '🎭',
+      school: '🎓', university: '🎓', library: '📚',
+      supermarket: '🛒', marketplace: '🛒',
+      gym: '💪', swimming_pool: '🏊',
+      place_of_worship: '⛪',
+    };
+    return map[osmType] ?? '📍';
   }
-  if (osmClass === 'shop')        return '🛍️';
-  if (osmClass === 'railway')     return '🚂';
-  if (osmClass === 'aeroway')     return '✈️';
-  if (osmClass === 'natural')     return '🌿';
-  if (osmClass === 'leisure')     return '🏖️';
-  return '📍';
+  if (osmClass === 'tourism') {
+    const map = {
+      museum: '🏛️', attraction: '🏛️', monument: '🗿',
+      hotel: '🏨', hostel: '🏨', motel: '🏨',
+      viewpoint: '🔭', gallery: '🖼️', zoo: '🦁',
+      theme_park: '🎡', information: 'ℹ️',
+    };
+    return map[osmType] ?? '🏛️';
+  }
+  if (osmClass === 'shop') {
+    const map = {
+      supermarket: '🛒', mall: '🏬', convenience: '🏪',
+      bakery: '🥐', clothes: '👗', electronics: '📱',
+      books: '📚', sports: '⚽', furniture: '🪑',
+      hairdresser: '💇', florist: '🌸',
+    };
+    return map[osmType] ?? '🛍️';
+  }
+  const clasMap = {
+    railway: '🚂', aeroway: '✈️', natural: '🌿',
+    leisure: '🏖️', historic: '🏰', sport: '⚽',
+  };
+  return clasMap[osmClass] ?? '📍';
 }

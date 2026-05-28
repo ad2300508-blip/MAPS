@@ -324,6 +324,7 @@ export default function App() {
         selectedModeId={selectedModeId}
         is3DMode={is3DMode}
         isNavigating={isNavigating}
+        isFollowing={mapCentered}
         onPOITap={handlePOITap}
         onLongPress={handleLongPress}
         onUserPan={handleUserPan}
