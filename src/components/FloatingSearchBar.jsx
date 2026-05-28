@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Clock, MapPin, Navigation, Loader } from 'lucide-react';
-import { placeEmoji } from '../data/mockData';
+import { Search, X, Loader } from 'lucide-react';
+import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
-function ResultRow({ emoji, primary, secondary, onClick }) {
+function ResultRow({ emoji, primary, secondary, dist, onClick }) {
   return (
     <motion.button
       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left focus:outline-none"
@@ -22,6 +22,9 @@ function ResultRow({ emoji, primary, secondary, onClick }) {
         <p className="text-sm font-medium text-white truncate leading-tight">{primary}</p>
         <p className="text-xs text-slate-500 truncate mt-0.5">{secondary}</p>
       </div>
+      {dist != null && (
+        <span className="flex-shrink-0 text-[11px] font-semibold text-slate-500 ml-1">{dist}</span>
+      )}
     </motion.button>
   );
 }
@@ -94,10 +97,10 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
 
   const handleSelect = (item) => {
     const dest = {
-      name: item.nameShort,
-      address: item.address,
-      coords: [parseFloat(item.lon), parseFloat(item.lat)],
-      emoji: item.emoji,
+      name:    item.nameShort || item.display_name?.split(',')[0] || 'Luogo',
+      address: item.address   || '',
+      coords:  [parseFloat(item.lon), parseFloat(item.lat)],
+      emoji:   item.emoji     || '📍',
     };
 
     // Save to recent
@@ -193,12 +196,17 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                       </p>
                       {results.map((r, i) => {
                         const item = parseResult(r);
+                        const coords = [parseFloat(r.lon), parseFloat(r.lat)];
+                        const dist = userLocation && !isNaN(coords[0])
+                          ? formatDistance(haversineMeters(userLocation, coords))
+                          : null;
                         return (
                           <ResultRow
                             key={i}
                             emoji={item.emoji}
                             primary={item.nameShort}
                             secondary={item.address}
+                            dist={dist}
                             onClick={() => handleSelect(item)}
                           />
                         );

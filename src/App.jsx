@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import MapView from './components/MapView';
 import FloatingSearchBar from './components/FloatingSearchBar';
 import POIDetailsPanel from './components/POIDetailsPanel';
@@ -26,7 +26,9 @@ export default function App() {
   const [isOffRoute,     setIsOffRoute]     = useState(false);
   const [hasArrived,     setHasArrived]     = useState(false);
   const [mapCentered,    setMapCentered]    = useState(true);
-  const mapApiRef = useRef(null);
+  const [isOnline,       setIsOnline]       = useState(navigator.onLine);
+  const mapApiRef    = useRef(null);
+  const navDestRef   = useRef(null);   // keeps destination marker visible during navigation
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
   const { location: userLocation, heading: gpsHeading, speed, error: gpsError } = useGeolocation();
@@ -39,6 +41,15 @@ export default function App() {
   // ── Keep screen on during navigation ────────────────────────────────────
   useWakeLock(isNavigating);
 
+  // ── Offline detection ────────────────────────────────────────────────────
+  useEffect(() => {
+    const on  = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener('online',  on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
+
   // ── Real routing — OSRM keeps fetching even during navigation ──────────
   // navDestCoords persists through navigation so OSRM can reroute if off-path
   const routingCoords = navDestCoords ?? destination?.coords;
@@ -46,7 +57,10 @@ export default function App() {
   const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, routingCoords, 'foot');
   const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, routingCoords, 'bike');
 
-  const routesByProfile = { driving: drivingRoute, foot: footRoute, bike: bikeRoute };
+  const routesByProfile = useMemo(
+    () => ({ driving: drivingRoute, foot: footRoute, bike: bikeRoute }),
+    [drivingRoute, footRoute, bikeRoute],
+  );
   const profileMap      = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
   const currentProfile  = profileMap[selectedModeId];
   const currentRoute    = routesByProfile[currentProfile];
@@ -56,6 +70,7 @@ export default function App() {
 
   // ── Destination selected ────────────────────────────────────────────────
   const handleDestinationSelect = useCallback((dest) => {
+    navigator.vibrate?.([30]);  // light tap feedback
     setDestination(dest);
     setIsSearchActive(false);
     setIsNavigating(false);
@@ -122,6 +137,7 @@ export default function App() {
   // ── Start navigation ────────────────────────────────────────────────────
   const handleStartNavigation = useCallback(() => {
     if (!currentRoute || !destination) return;
+    navigator.vibrate?.([60, 40, 60]);  // double tap = navigation start
     const coords = destination.coords;
     const name   = destination.name;
     setNavDestCoords(coords);
@@ -147,6 +163,7 @@ export default function App() {
     setCurrentStepIdx(0);
     setIsOffRoute(false);
     setNavDestCoords(null);
+    navDestRef.current = null;  // clear destination marker
     cancel();
     if (arrived) {
       setHasArrived(true);
@@ -303,7 +320,7 @@ export default function App() {
     };
     document.addEventListener('backbutton', handler);
     return () => document.removeEventListener('backbutton', handler);
-  }, [hasArrived, isNavigating, destination, isSearchActive]);
+  }, [hasArrived, isNavigating, destination, isSearchActive, handleStopNavigation, handleClosePanel]);
 
   // ── Map pan detection: mark map as off-center ────────────────────────────
   const handleUserPan = useCallback(() => {
@@ -321,22 +338,12 @@ export default function App() {
     }
   }, [userLocation, userHeading]);
 
-  // When navigation follow-camera fires, mark as centered
-  const prevNavLocRef = useRef(null);
-  useEffect(() => {
-    if (!isNavigating || !userLocation) return;
-    if (!mapCentered) return; // user panned — don't override
-    if (prevNavLocRef.current === userLocation) return;
-    prevNavLocRef.current = userLocation;
-  }, [isNavigating, userLocation, mapCentered]);
-
   // Reset centered flag when navigation starts
   useEffect(() => {
     if (isNavigating) setMapCentered(true);
   }, [isNavigating]);
 
   // ── Keep destination marker visible during navigation ───────────────────
-  const navDestRef = useRef(null);
   useEffect(() => {
     if (destination) navDestRef.current = destination;
   }, [destination]);
@@ -386,9 +393,23 @@ export default function App() {
           />
         </div>
 
+        {/* Offline banner */}
+        <AnimatePresence>
+          {!isOnline && (
+            <motion.div
+              className="absolute top-24 left-1/2 -translate-x-1/2 glass-bright px-4 py-2.5 rounded-2xl pointer-events-none z-50"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <p className="text-xs text-amber-400 font-medium whitespace-nowrap">📡 Nessuna connessione — mappa in cache</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* GPS error toast */}
         {gpsError && !userLocation && (
-          <div className="absolute top-24 left-1/2 -translate-x-1/2 glass-bright px-4 py-2.5 rounded-2xl pointer-events-auto">
+          <div className="absolute top-36 left-1/2 -translate-x-1/2 glass-bright px-4 py-2.5 rounded-2xl pointer-events-auto">
             <p className="text-xs text-red-400 font-medium">⚠ {gpsError}</p>
           </div>
         )}
@@ -436,6 +457,7 @@ export default function App() {
                 speed={speed}
                 isOffRoute={isOffRoute}
                 userLocation={userLocation}
+                destName={navDestName}
                 onStop={() => handleStopNavigation(false)}
               />
             </div>

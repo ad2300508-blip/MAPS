@@ -26,6 +26,7 @@ export default function NavigationHUD({
   isOffRoute,
   onStop,
   userLocation,
+  destName,
 }) {
   if (!route) return null;
 
@@ -115,6 +116,11 @@ export default function NavigationHUD({
             <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
               {instruction}
             </p>
+            {destName && (
+              <p className="text-[10px] text-slate-600 mt-1 truncate">
+                → {destName}
+              </p>
+            )}
           </div>
 
           <button

@@ -267,6 +267,21 @@ export default function POIDetailsPanel({
                     <MapPin size={15} className="text-slate-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-slate-400">{destination.address || destination.name}</p>
                   </div>
+
+                  {/* Open in Google Maps */}
+                  {destination.coords && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${destination.coords[1]},${destination.coords[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
+                    >
+                      <span style={{ fontSize: 16 }}>🗺️</span>
+                      Apri in Google Maps
+                    </a>
+                  )}
+
                   <p className="text-xs text-slate-600">
                     Dati forniti da OpenStreetMap — gratuiti e aggiornati dalla community.
                   </p>
