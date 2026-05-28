@@ -36,12 +36,12 @@ async function fetchOverpass(query) {
   return null;
 }
 
-export function useNearbyPOIs(location, radius = 600) {
+export function useNearbyPOIs(location, { radius = 600, paused = false } = {}) {
   const [pois, setPOIs] = useState([]);
   const keyRef = useRef(null);
 
   useEffect(() => {
-    if (!location) return;
+    if (!location || paused) return;
     const key = `${grid(location[0])},${grid(location[1])}`;
     if (key === keyRef.current) return;
     keyRef.current = key;

@@ -50,21 +50,21 @@ export default function App() {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
-  // ── Real routing — OSRM keeps fetching even during navigation ──────────
-  // navDestCoords persists through navigation so OSRM can reroute if off-path
+  // ── Real routing ────────────────────────────────────────────────────────
+  // navDestCoords persists through navigation so OSRM can reroute off-path.
+  // During navigation only the active profile fetches — saves 2/3 of requests.
+  const profileMap    = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
+  const currentProfile = profileMap[selectedModeId];
   const routingCoords = navDestCoords ?? destination?.coords;
-  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, routingCoords, 'driving');
-  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, routingCoords, 'foot');
-  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, routingCoords, 'bike');
+  const drivingDest   = (!isNavigating || currentProfile === 'driving') ? routingCoords : null;
+  const footDest      = (!isNavigating || currentProfile === 'foot')    ? routingCoords : null;
+  const bikeDest      = (!isNavigating || currentProfile === 'bike')    ? routingCoords : null;
+  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving');
+  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot');
+  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike');
 
-  const routesByProfile = useMemo(
-    () => ({ driving: drivingRoute, foot: footRoute, bike: bikeRoute }),
-    [drivingRoute, footRoute, bikeRoute],
-  );
-  const profileMap      = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
-  const currentProfile  = profileMap[selectedModeId];
-  const currentRoute    = routesByProfile[currentProfile];
-  const routeLoading    = drivingLoading || footLoading || bikeLoading;
+  const currentRoute  = routesByProfile[currentProfile];
+  const routeLoading  = drivingLoading || footLoading || bikeLoading;
 
   const handleMapLoaded = useCallback((mapApi) => { mapApiRef.current = mapApi; }, []);
 

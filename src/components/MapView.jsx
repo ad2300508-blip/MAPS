@@ -177,7 +177,7 @@ export default function MapView({
   const [hasFlownToUser, setHasFlownToUser] = useState(false);
 
   const currentMode = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
-  const nearbyPOIs  = useNearbyPOIs(userLocation);
+  const nearbyPOIs  = useNearbyPOIs(userLocation, { paused: isNavigating });
 
   // Show the 10 closest POIs only
   const sortedPOIs = useMemo(() => {
