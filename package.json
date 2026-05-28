@@ -11,7 +11,7 @@
   "dependencies": {
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.414.0",
-    "mapbox-gl": "^2.15.0",
+    "maplibre-gl": "^3.6.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-map-gl": "^7.1.7"

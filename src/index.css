@@ -21,25 +21,25 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Mapbox overrides ─────────────────────────────────────── */
-.mapboxgl-canvas {
+/* ─── MapLibre overrides ───────────────────────────────────── */
+.maplibregl-canvas {
   outline: none;
 }
 
-.mapboxgl-ctrl-logo {
-  opacity: 0.25 !important;
-  transform: scale(0.75);
+.maplibregl-ctrl-logo {
+  opacity: 0.2 !important;
+  transform: scale(0.7);
   transform-origin: bottom left;
 }
 
-.mapboxgl-ctrl-attrib {
+.maplibregl-ctrl-attrib {
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.2) !important;
   font-size: 10px !important;
 }
 
-.mapboxgl-ctrl-attrib a {
-  color: rgba(255, 255, 255, 0.3) !important;
+.maplibregl-ctrl-attrib a {
+  color: rgba(255, 255, 255, 0.25) !important;
 }
 
 /* ─── User location marker ─────────────────────────────────── */

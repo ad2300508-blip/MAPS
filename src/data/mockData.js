@@ -1,12 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// MAPBOX ACCESS TOKEN
-// ─────────────────────────────────────────────────────────────────────────────
-// ⚠️  Replace the value below with your own free Mapbox token.
-// Get one at: https://account.mapbox.com/access-tokens/
-// After creating an account, copy the "Default public token" and paste it here.
-// ─────────────────────────────────────────────────────────────────────────────
-export const MAPBOX_TOKEN = 'YOUR_MAPBOX_ACCESS_TOKEN_HERE';
-
 // ─── Initial map viewport ────────────────────────────────────────────────────
 // Paris, France — centred between Notre-Dame and the Eiffel Tower.
 export const INITIAL_VIEW_STATE = {
