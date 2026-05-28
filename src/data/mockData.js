@@ -128,11 +128,11 @@ export function haversineMeters([lng1, lat1], [lng2, lat2]) {
 export function maneuverToItalian(type, modifier, name, exit) {
   const street = name ? ` su ${name}` : '';
   switch (type) {
-    case 'depart':       return `Parti${street}`;
-    case 'arrive':       return 'Sei arrivato/a a destinazione';
-    case 'continue':     return `Continua${street}`;
-    case 'new name':     return `Continua${street}`;
-    case 'merge':        return `Immettiti${street}`;
+    case 'depart':       return name ? `Parti su ${name}` : 'Inizia il percorso';
+    case 'arrive':       return 'Sei arrivato a destinazione';
+    case 'continue':     return name ? `Continua su ${name}` : 'Continua dritto';
+    case 'new name':     return name ? `Continua su ${name}` : 'Continua dritto';
+    case 'merge':        return name ? `Immettiti su ${name}` : 'Immettiti nel traffico';
     case 'on ramp':      return `Prendi la rampa${street}`;
     case 'off ramp':     return modifier?.includes('left')
                            ? `Esci a sinistra${street}`
