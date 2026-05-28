@@ -295,7 +295,7 @@ export default function App() {
   useEffect(() => {
     if (!isNavigating || !currentRoute || !userLocation || !navDestCoords) return;
     const endCoord = navDestCoords;
-    if (haversineMeters(userLocation, endCoord) < 30) {
+    if (haversineMeters(userLocation, endCoord) < 40) {
       handleStopNavigation(true);
     }
   }, [userLocation, isNavigating, currentRoute, navDestCoords]);
@@ -386,6 +386,7 @@ export default function App() {
                 onActiveChange={setIsSearchActive}
                 onResultSelect={handleDestinationSelect}
                 userLocation={userLocation}
+                isOnline={isOnline}
               />
             </div>
           )}

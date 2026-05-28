@@ -364,6 +364,7 @@ export default function MapView({
       startY = e.touches[0].clientY;
       timer = setTimeout(() => {
         if (moved) return;
+        navigator.vibrate?.([45]);  // brief haptic confirms long-press
         const canvas = map.getCanvas();
         const rect   = canvas.getBoundingClientRect();
         const ll = map.unproject([startX - rect.left, startY - rect.top]);

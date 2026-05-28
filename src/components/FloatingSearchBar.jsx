@@ -29,7 +29,7 @@ function ResultRow({ emoji, primary, secondary, dist, onClick }) {
   );
 }
 
-export default function FloatingSearchBar({ isActive, onActiveChange, onResultSelect, userLocation }) {
+export default function FloatingSearchBar({ isActive, onActiveChange, onResultSelect, userLocation, isOnline = true }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,6 +47,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const search = useCallback(async (q) => {
     abortRef.current?.abort();
     if (!q.trim()) { setResults([]); setLoading(false); return; }
+    if (!isOnline) { setResults([]); setLoading(false); return; }
 
     abortRef.current = new AbortController();
     setLoading(true);
@@ -213,8 +214,8 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                       })}
                     </>
                   ) : query.trim() && !loading ? (
-                    <p className="px-4 py-6 text-sm text-slate-600 text-center">
-                      Nessun risultato per "{query}"
+                    <p className="px-4 py-6 text-sm text-center" style={{ color: !isOnline ? '#fbbf24' : '#475569' }}>
+                      {!isOnline ? '📡 Offline — ricerca non disponibile' : `Nessun risultato per "${query}"`}
                     </p>
                   ) : !query.trim() ? (
                     <>
