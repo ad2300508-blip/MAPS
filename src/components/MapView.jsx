@@ -48,6 +48,17 @@ function add3DBuildings(map) {
   } catch { /* graceful */ }
 }
 
+// ─── GPS accuracy circle polygon (avoids MapLibre circle-radius pixel issues) ─
+function accuracyPolygon([lng, lat], radiusM, segments = 32) {
+  const pts = Array.from({ length: segments + 1 }, (_, i) => {
+    const angle = (i / segments) * 2 * Math.PI;
+    const dLat  = (radiusM / 6_371_000) * (180 / Math.PI);
+    const dLng  = dLat / Math.cos(lat * Math.PI / 180);
+    return [lng + dLng * Math.sin(angle), lat + dLat * Math.cos(angle)];
+  });
+  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [pts] } };
+}
+
 // ─── User location marker with SVG compass arrow ──────────────────────────
 function UserLocationMarker({ heading }) {
   return (
@@ -160,6 +171,7 @@ export default function MapView({
   onMapLoaded,
   userLocation,
   userHeading,
+  userAccuracy,
   destination,
   route,
   selectedModeId,
@@ -176,8 +188,12 @@ export default function MapView({
   const [visibleCount,   setVisibleCount]   = useState(SEED);
   const [hasFlownToUser, setHasFlownToUser] = useState(false);
 
-  const currentMode = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
-  const nearbyPOIs  = useNearbyPOIs(userLocation, { paused: isNavigating });
+  const currentMode    = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
+  const nearbyPOIs     = useNearbyPOIs(userLocation, { paused: isNavigating });
+  const accuracyGeoJSON = useMemo(
+    () => (userLocation && userAccuracy > 8 ? accuracyPolygon(userLocation, userAccuracy) : null),
+    [userLocation, userAccuracy],
+  );
 
   // Show the 10 closest POIs only
   const sortedPOIs = useMemo(() => {
@@ -387,6 +403,16 @@ export default function MapView({
         antialias
         attributionControl
       >
+        {/* GPS accuracy circle — shown when accuracy > 8 m */}
+        {accuracyGeoJSON && (
+          <Source id="accuracy-src" type="geojson" data={accuracyGeoJSON}>
+            <Layer id="accuracy-fill" type="fill"
+              paint={{ 'fill-color': '#4cc9f0', 'fill-opacity': 0.07 }} />
+            <Layer id="accuracy-ring" type="line"
+              paint={{ 'line-color': '#4cc9f0', 'line-opacity': 0.25, 'line-width': 1 }} />
+          </Source>
+        )}
+
         {/* Route — always mounted, opacity:0 when no route (no lineMetrics needed) */}
         <Source id="route-src" type="geojson" data={routeGeoJSON}>
           <Layer {...glowLayer} />

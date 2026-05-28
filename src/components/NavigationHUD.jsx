@@ -39,7 +39,7 @@ export default function NavigationHUD({
   const name     = step?.name ?? '';
 
   const icon        = maneuverIcon(type, modifier);
-  const instruction = maneuverToItalian(type, modifier, name);
+  const instruction = maneuverToItalian(type, modifier, name, step?.maneuver?.exit);
 
   // Distance to next turn: haversine from user to next maneuver point
   const nextTurnLoc = nextStep?.maneuver?.location;

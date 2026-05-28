@@ -31,7 +31,7 @@ export default function App() {
   const navDestRef   = useRef(null);   // keeps destination marker visible during navigation
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
-  const { location: userLocation, heading: gpsHeading, speed, error: gpsError } = useGeolocation();
+  const { location: userLocation, heading: gpsHeading, speed, accuracy, error: gpsError } = useGeolocation();
   const compassHeading = useCompassHeading();
   const userHeading = gpsHeading ?? compassHeading;
 
@@ -62,6 +62,10 @@ export default function App() {
   const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving');
   const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot');
   const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike');
+  const routesByProfile = useMemo(
+    () => ({ driving: drivingRoute, foot: footRoute, bike: bikeRoute }),
+    [drivingRoute, footRoute, bikeRoute],
+  );
 
   const currentRoute  = routesByProfile[currentProfile];
   const routeLoading  = drivingLoading || footLoading || bikeLoading;
@@ -152,6 +156,7 @@ export default function App() {
     if (steps[0]) {
       const instruction = maneuverToItalian(
         steps[0].maneuver?.type, steps[0].maneuver?.modifier, steps[0].name ?? '',
+        steps[0].maneuver?.exit,
       );
       speak(`Navigazione avviata. ${instruction}`);
     }
@@ -201,7 +206,7 @@ export default function App() {
     const steps = currentRoute.legs?.[0]?.steps ?? [];
     const step  = steps[currentStepIdx];
     if (!step) return;
-    speak(maneuverToItalian(step.maneuver?.type, step.maneuver?.modifier, step.name ?? ''));
+    speak(maneuverToItalian(step.maneuver?.type, step.maneuver?.modifier, step.name ?? '', step.maneuver?.exit));
   }, [currentStepIdx, isNavigating, currentRoute, speak]);
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
@@ -225,6 +230,7 @@ export default function App() {
     const dist = haversineMeters(userLocation, nextLoc);
     const instr = maneuverToItalian(
       nextStep.maneuver?.type, nextStep.maneuver?.modifier, nextStep.name ?? '',
+      nextStep.maneuver?.exit,
     );
 
     if (dist < 200 && dist >= 60 && !spokenAt200Ref.current) {
@@ -361,6 +367,7 @@ export default function App() {
         is3DMode={is3DMode}
         isNavigating={isNavigating}
         isFollowing={mapCentered}
+        userAccuracy={accuracy}
         onPOITap={handlePOITap}
         onLongPress={handleLongPress}
         onUserPan={handleUserPan}

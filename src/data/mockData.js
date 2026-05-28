@@ -117,7 +117,7 @@ export function haversineMeters([lng1, lat1], [lng2, lat2]) {
 }
 
 // Convert OSRM maneuver to Italian instruction
-export function maneuverToItalian(type, modifier, name) {
+export function maneuverToItalian(type, modifier, name, exit) {
   const street = name ? ` su ${name}` : '';
   switch (type) {
     case 'depart':       return `Parti${street}`;
@@ -141,8 +141,12 @@ export function maneuverToItalian(type, modifier, name) {
       return 'Vai dritto allo svincolo';
     case 'roundabout':
     case 'rotary': {
-      const exit = modifier ? ` (${modifier})` : '';
-      return `Entra nella rotonda${exit}`;
+      if (exit != null && exit > 0) {
+        const ordinals = ['prima', 'seconda', 'terza', 'quarta', 'quinta', 'sesta'];
+        const ord = ordinals[exit - 1] ?? `${exit}°`;
+        return `Alla rotonda, prendi la ${ord} uscita`;
+      }
+      return 'Alla rotonda, continua dritto';
     }
     case 'roundabout turn':
       return `Nella rotonda, ${modifier?.includes('left') ? 'tieni la sinistra' : 'tieni la destra'}`;

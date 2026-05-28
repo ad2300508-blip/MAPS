@@ -1,21 +1,28 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export function useSpeech() {
-  // Pre-warm voices on first call (some browsers load lazily)
+  const voicesRef = useRef([]);
+
   useEffect(() => {
-    window.speechSynthesis?.getVoices();
+    if (!window.speechSynthesis) return;
+    const refresh = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) voicesRef.current = v;
+    };
+    refresh();
+    // Android WebView loads voices asynchronously — must listen for voiceschanged
+    window.speechSynthesis.addEventListener('voiceschanged', refresh);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', refresh);
   }, []);
 
   const speak = useCallback((text, { rate = 1.05, urgent = false } = {}) => {
     if (!window.speechSynthesis || !text) return;
     window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang   = 'it-IT';
-    utt.rate   = urgent ? 1.1 : rate;
-    utt.volume = 1;
-    // Prefer an Italian voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const itVoice = voices.find(v => v.lang.startsWith('it'));
+    const utt    = new SpeechSynthesisUtterance(text);
+    utt.lang     = 'it-IT';
+    utt.rate     = urgent ? 1.1 : rate;
+    utt.volume   = 1;
+    const itVoice = voicesRef.current.find((v) => v.lang.startsWith('it'));
     if (itVoice) utt.voice = itVoice;
     window.speechSynthesis.speak(utt);
   }, []);

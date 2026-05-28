@@ -26,7 +26,7 @@ function StepRow({ step, index, color }) {
   const type     = step.maneuver?.type;
   const modifier = step.maneuver?.modifier;
   const icon     = maneuverIcon(type, modifier);
-  const text     = maneuverToItalian(type, modifier, step.name);
+  const text     = maneuverToItalian(type, modifier, step.name, step.maneuver?.exit);
   const dist     = formatDistance(step.distance);
   const dur      = Math.round(step.duration / 60);
   const isLast   = type === 'arrive';
