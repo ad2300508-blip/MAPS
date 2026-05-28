@@ -312,7 +312,6 @@ export default function MapView({
   const prevRouteKeyRef = useRef(null);
   useEffect(() => {
     if (!mapReady) return;
-    // Use start+end coords as a stable key — avoids re-animating on minor GPS updates
     const first = routeCoords[0];
     const last  = routeCoords[routeCoords.length - 1];
     const key   = first && last
@@ -320,8 +319,14 @@ export default function MapView({
       : '';
     if (key === prevRouteKeyRef.current) return;
     prevRouteKeyRef.current = key;
-    animateRoute(routeCoords);
-  }, [routeCoords, mapReady, animateRoute]);
+    if (isNavigating) {
+      // During active navigation show the updated remaining route instantly —
+      // the draw animation would cause a visible flicker on every OSRM refetch (~100 m)
+      setVisibleCount(routeCoords.length);
+    } else {
+      animateRoute(routeCoords);
+    }
+  }, [routeCoords, mapReady, isNavigating, animateRoute]);
 
   // Navigation follow mode — only when map is centered (user hasn't panned away)
   useEffect(() => {

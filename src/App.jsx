@@ -146,6 +146,7 @@ export default function App() {
     const name   = destination.name;
     setNavDestCoords(coords);
     setNavDestName(name);
+    prevStepRef.current = 0;  // prevent step voice effect from double-speaking the start instruction
     setIsNavigating(true);
     setCurrentStepIdx(0);
     setHasArrived(false);
