@@ -211,7 +211,8 @@ export default function App() {
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx, speak, vibrate]);
 
-  // ── Off-route detection ─────────────────────────────────────────────────
+  // ── Off-route detection + announcement ──────────────────────────────────
+  const prevOffRouteRef = useRef(false);
   useEffect(() => {
     if (!isNavigating || !userLocation || !currentRoute) { setIsOffRoute(false); return; }
     const coords = currentRoute.geometry?.coordinates ?? [];
@@ -221,8 +222,14 @@ export default function App() {
       const d = haversineMeters(userLocation, c);
       if (d < min) min = d;
     }
-    setIsOffRoute(min > 75);
-  }, [userLocation, isNavigating, currentRoute]);
+    const offNow = min > 75;
+    setIsOffRoute(offNow);
+    if (offNow && !prevOffRouteRef.current) {
+      speak('Fuori percorso. Ricalcolo in corso.');
+      vibrate([200]);
+    }
+    prevOffRouteRef.current = offNow;
+  }, [userLocation, isNavigating, currentRoute, speak, vibrate]);
 
   // ── Auto-reset step index on reroute ────────────────────────────────────
   const prevRouteKeyRef = useRef(null);
