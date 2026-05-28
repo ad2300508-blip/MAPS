@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 
 export default function ArrivedOverlay({ destName, onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 8000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
   return (
     <motion.div
       className="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"

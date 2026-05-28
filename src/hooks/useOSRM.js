@@ -19,8 +19,7 @@ export function useOSRM(origin, destination, profile) {
   const snappedOrigin = useMemo(() => {
     if (!origin) return null;
     return [snap(origin[0]), snap(origin[1])];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin && snap(origin[0]), origin && snap(origin[1])]);
+  }, [origin != null ? snap(origin[0]) : null, origin != null ? snap(origin[1]) : null]);
 
   useEffect(() => {
     if (!snappedOrigin || !destination) {
