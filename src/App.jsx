@@ -12,7 +12,7 @@ import { useCompassHeading } from './hooks/useCompassHeading';
 import { useOSRM } from './hooks/useOSRM';
 import { useSpeech } from './hooks/useSpeech';
 import { useWakeLock } from './hooks/useWakeLock';
-import { getModeById, haversineMeters, maneuverToItalian, formatDistance } from './data/mockData';
+import { getModeById, haversineMeters, maneuverToItalian, formatDistance, formatDistanceVoice } from './data/mockData';
 
 export default function App() {
   const [destination,    setDestination]    = useState(null);   // {name, address, coords, emoji}
@@ -246,7 +246,7 @@ export default function App() {
     if (dist < 200 && dist >= 60 && !spokenAt200Ref.current) {
       spokenAt200Ref.current = true;
       spokenAt60Ref.current  = false;
-      speak(`Tra ${formatDistance(dist)}, ${instr}`);
+      speak(`Tra ${formatDistanceVoice(dist)}, ${instr}`);
       vibrate([60]);
     } else if (dist < 60 && !spokenAt60Ref.current) {
       spokenAt60Ref.current  = true;

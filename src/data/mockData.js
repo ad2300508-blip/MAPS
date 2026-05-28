@@ -90,6 +90,14 @@ export function formatDistance(meters) {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
+// Voice-friendly version: "200 metri" / "1,2 chilometri" (no abbreviations)
+export function formatDistanceVoice(meters) {
+  if (meters == null) return '';
+  if (meters < 1000) return `${Math.round(meters / 5) * 5} metri`;
+  const km = meters / 1000;
+  return km < 2 ? `${km.toFixed(1).replace('.', ',')} chilometri` : `${Math.round(km)} chilometri`;
+}
+
 export function formatCO2(meters, mode) {
   const kg = (meters / 1000) * (mode.co2PerKm ?? 0) / 1000;
   if (kg === 0) return '0 kg';
