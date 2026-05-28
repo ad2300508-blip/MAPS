@@ -1,15 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 const BASE = 'https://router.project-osrm.org/route/v1';
 
+// Round to ~100 m precision so GPS jitter doesn't trigger constant refetches
+const snap = (n) => Math.round(n * 1000) / 1000;
+
 export function useOSRM(origin, destination, profile) {
-  const [route, setRoute] = useState(null);
+  const [route,   setRoute]   = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
   const abortRef = useRef(null);
 
+  // Snapped origin — stable across GPS micro-updates
+  const snappedOrigin = useMemo(() => {
+    if (!origin) return null;
+    return [snap(origin[0]), snap(origin[1])];
+  // Recompute only when origin moves ~100 m
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin && snap(origin[0]), origin && snap(origin[1])]);
+
   useEffect(() => {
-    if (!origin || !destination) {
+    if (!snappedOrigin || !destination) {
       setRoute(null);
       setLoading(false);
       return;
@@ -20,7 +31,8 @@ export function useOSRM(origin, destination, profile) {
 
     const url =
       `${BASE}/${profile}/` +
-      `${origin[0]},${origin[1]};${destination[0]},${destination[1]}` +
+      `${snappedOrigin[0]},${snappedOrigin[1]};` +
+      `${destination[0]},${destination[1]}` +
       `?steps=true&geometries=geojson&overview=full`;
 
     setLoading(true);
@@ -45,11 +57,9 @@ export function useOSRM(origin, destination, profile) {
       });
 
     return () => abortRef.current?.abort();
-  // Only re-fetch when coordinates or profile actually change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    origin?.[0], origin?.[1],
-    destination?.[0], destination?.[1],
+    snappedOrigin?.[0], snappedOrigin?.[1],
+    destination?.[0],   destination?.[1],
     profile,
   ]);
 

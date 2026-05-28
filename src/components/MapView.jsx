@@ -184,43 +184,56 @@ export default function MapView({
 
   const hasRoute = routeCoords.length >= 2;
 
-  // Always-mounted GeoJSON — controls opacity instead of conditional mount
-  // (line-gradient + lineMetrics require the Source to never unmount)
+  // Slice coordinates to the animated count
+  const visibleCoords = useMemo(
+    () => hasRoute ? routeCoords.slice(0, Math.max(2, visibleCount)) : null,
+    [routeCoords, visibleCount, hasRoute],
+  );
+
+  // Separate GeoJSONs for the two layers — avoids lineMetrics/line-gradient
+  // which is unreliable in Android WebView
   const routeGeoJSON = useMemo(() => ({
     type: 'Feature',
     properties: {},
     geometry: {
       type: 'LineString',
-      coordinates: hasRoute
-        ? routeCoords.slice(0, Math.max(2, visibleCount))
-        : [[0, 0.0001], [0.0001, 0]],   // valid dummy, invisible via opacity:0
+      coordinates: visibleCoords ?? [[12, 45], [12.001, 45]],
     },
-  }), [routeCoords, visibleCount, hasRoute]);
+  }), [visibleCoords]);
 
+  // Outer glow — wide, blurred, low opacity
   const glowLayer = useMemo(() => ({
     id: 'route-glow', type: 'line',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
       'line-color':   currentMode.color,
-      'line-width':   28,
-      'line-opacity': hasRoute ? 0.13 : 0,
-      'line-blur':    20,
+      'line-width':   24,
+      'line-blur':    18,
+      'line-opacity': hasRoute ? 0.22 : 0,
     },
   }), [currentMode.color, hasRoute]);
 
+  // Core solid line — reliable everywhere, no lineMetrics needed
   const lineLayer = useMemo(() => ({
     id: 'route-line', type: 'line',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-      'line-gradient': [
-        'interpolate', ['linear'], ['line-progress'],
-        0, currentMode.gradientStart,
-        1, currentMode.gradientEnd,
-      ],
+      'line-color':   currentMode.color,
       'line-width':   currentMode.lineWidth,
-      'line-opacity': hasRoute ? 0.95 : 0,
+      'line-opacity': hasRoute ? 0.92 : 0,
     },
-  }), [currentMode.gradientStart, currentMode.gradientEnd, currentMode.lineWidth, hasRoute]);
+  }), [currentMode.color, currentMode.lineWidth, hasRoute]);
+
+  // Bright centre stripe for depth
+  const coreLayer = useMemo(() => ({
+    id: 'route-core', type: 'line',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: {
+      'line-color':   '#ffffff',
+      'line-width':   Math.max(1.5, currentMode.lineWidth * 0.22),
+      'line-opacity': hasRoute ? 0.35 : 0,
+    },
+  }), [currentMode.lineWidth, hasRoute]);
 
   // Animate route drawing
   const animateRoute = useCallback((pts) => {
@@ -255,9 +268,19 @@ export default function MapView({
     setHasFlownToUser(true);
   }, [mapReady, userLocation, hasFlownToUser, is3DMode]);
 
-  // Re-animate when route changes
+  // Re-animate only when route geometry actually changes (not GPS jitter)
+  const prevRouteKeyRef = useRef(null);
   useEffect(() => {
-    if (mapReady) animateRoute(routeCoords);
+    if (!mapReady) return;
+    // Use start+end coords as a stable key — avoids re-animating on minor GPS updates
+    const first = routeCoords[0];
+    const last  = routeCoords[routeCoords.length - 1];
+    const key   = first && last
+      ? `${first[0].toFixed(3)},${first[1].toFixed(3)}-${last[0].toFixed(3)},${last[1].toFixed(3)}`
+      : '';
+    if (key === prevRouteKeyRef.current) return;
+    prevRouteKeyRef.current = key;
+    animateRoute(routeCoords);
   }, [routeCoords, mapReady, animateRoute]);
 
   // Navigation follow mode
@@ -288,10 +311,11 @@ export default function MapView({
         antialias
         attributionControl
       >
-        {/* Route — always mounted, visibility via opacity */}
-        <Source id="route-src" type="geojson" data={routeGeoJSON} lineMetrics={true}>
+        {/* Route — always mounted, opacity:0 when no route (no lineMetrics needed) */}
+        <Source id="route-src" type="geojson" data={routeGeoJSON}>
           <Layer {...glowLayer} />
           <Layer {...lineLayer} />
+          <Layer {...coreLayer} />
         </Source>
 
         {/* User location */}
