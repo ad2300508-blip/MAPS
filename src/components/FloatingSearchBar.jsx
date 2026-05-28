@@ -85,13 +85,21 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     const q = e.target.value;
     setQuery(q);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(q), 500);
+    if (q.trim()) {
+      setLoading(true); // immediate spinner before debounce fires
+      debounceRef.current = setTimeout(() => search(q), 500);
+    } else {
+      setLoading(false);
+      setResults([]);
+      abortRef.current?.abort();
+    }
   };
 
   const handleClose = () => {
     onActiveChange(false);
     setQuery('');
     setResults([]);
+    setLoading(false);
     abortRef.current?.abort();
     inputRef.current?.blur();
   };
