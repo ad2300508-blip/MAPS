@@ -1,5 +1,4 @@
 // ─── Initial map viewport ────────────────────────────────────────────────────
-// Paris, France — centred between Notre-Dame and the Eiffel Tower.
 export const INITIAL_VIEW_STATE = {
   longitude: 2.3270,
   latitude: 48.8600,
@@ -9,30 +8,7 @@ export const INITIAL_VIEW_STATE = {
 };
 
 // ─── Mock user location ───────────────────────────────────────────────────────
-// Near Notre-Dame on the Île de la Cité.
 export const MOCK_USER_LOCATION = [2.3499, 48.8530];
-
-// ─── Mock route (LineString) ──────────────────────────────────────────────────
-// From Notre-Dame area → Tour Eiffel, following rough street geometry.
-// Replace with a real Directions API response in production:
-// https://docs.mapbox.com/api/navigation/directions/
-export const MOCK_ROUTE = {
-  type: 'Feature',
-  properties: {},
-  geometry: {
-    type: 'LineString',
-    coordinates: [
-      [2.3499, 48.8530], // Start – Notre-Dame
-      [2.3420, 48.8545],
-      [2.3350, 48.8555],
-      [2.3240, 48.8563],
-      [2.3130, 48.8571],
-      [2.3040, 48.8578],
-      [2.2970, 48.8581],
-      [2.2945, 48.8584], // End – Tour Eiffel
-    ],
-  },
-};
 
 // ─── Mock points of interest ──────────────────────────────────────────────────
 export const MOCK_POIS = [
@@ -45,10 +21,9 @@ export const MOCK_POIS = [
     coords: [2.2945, 48.8584],
     rating: 4.8,
     reviews: 241800,
-    duration: '35 min',
-    distance: '3.1 km',
     isOpen: true,
     openHours: 'Aperto fino alle 00:45',
+    photos: 6,
     description:
       'La Torre Eiffel, costruita da Gustave Eiffel per l\'Esposizione Universale del 1889, è il simbolo più riconoscibile di Parigi. Con i suoi 330 metri domina la skyline della città.',
     tags: ['Panorama', 'Romantico', 'Iconico'],
@@ -63,10 +38,9 @@ export const MOCK_POIS = [
     coords: [2.3376, 48.8606],
     rating: 4.7,
     reviews: 198400,
-    duration: '12 min',
-    distance: '1.1 km',
     isOpen: true,
     openHours: 'Aperto fino alle 21:45',
+    photos: 8,
     description:
       'Il museo più visitato al mondo ospita oltre 35.000 opere tra cui la Gioconda di Leonardo da Vinci, la Venere di Milo e la Vittoria Alata di Samotracia.',
     tags: ['Arte', 'Storia', 'Cultura'],
@@ -81,10 +55,9 @@ export const MOCK_POIS = [
     coords: [2.3431, 48.8867],
     rating: 4.9,
     reviews: 87300,
-    duration: '28 min',
-    distance: '4.2 km',
     isOpen: true,
     openHours: 'Aperto fino alle 22:30',
+    photos: 5,
     description:
       'Basilica in stile romano-bizantino sulla sommità di Montmartre. La cupola bianca è visibile da quasi tutta Parigi e offre una vista panoramica straordinaria.',
     tags: ['Vista', 'Spirituale', 'Architettura'],
@@ -99,12 +72,11 @@ export const MOCK_POIS = [
     coords: [2.3499, 48.8530],
     rating: 4.8,
     reviews: 213500,
-    duration: '2 min',
-    distance: '0.2 km',
     isOpen: false,
-    openHours: 'In restauro — riapertura 2024',
+    openHours: 'Riaperta — visite limitate',
+    photos: 7,
     description:
-      'Capolavoro dell\'architettura gotica medievale, Notre-Dame è in fase di restauro dopo il devastante incendio dell\'aprile 2019. La cattedrale è stata riaperta nel dicembre 2024.',
+      'Capolavoro dell\'architettura gotica medievale. Notre-Dame ha riaperto nel dicembre 2024 dopo il restauro seguito all\'incendio del 2019.',
     tags: ['Gotico', 'Storico', 'UNESCO'],
     color: '#fb923c',
   },
@@ -117,20 +89,17 @@ export const MOCK_POIS = [
     coords: [2.2950, 48.8738],
     rating: 4.6,
     reviews: 156700,
-    duration: '32 min',
-    distance: '4.8 km',
     isOpen: true,
     openHours: 'Aperto fino alle 23:00',
+    photos: 4,
     description:
-      'Commissionato da Napoleone Bonaparte nel 1806, l\'Arco di Trionfo celebra le vittorie militari francesi. Dalla terrazza offre una vista iconica sui 12 boulevards che si irradiano verso Place Charles de Gaulle.',
+      'Commissionato da Napoleone Bonaparte nel 1806. Dalla terrazza offre una vista iconica sui 12 boulevards irradiati da Place Charles de Gaulle.',
     tags: ['Napoleonico', 'Panorama', 'Storico'],
     color: '#34d399',
   },
 ];
 
 // ─── Mock search suggestions ──────────────────────────────────────────────────
-// Replace with a real Geocoding API call in production:
-// https://docs.mapbox.com/api/search/geocoding/
 export const MOCK_SEARCH_SUGGESTIONS = [
   { id: 1, text: 'Tour Eiffel', secondary: 'Champ de Mars, Parigi', type: 'landmark', poi: MOCK_POIS[0] },
   { id: 2, text: 'Musée du Louvre', secondary: 'Rue de Rivoli, Parigi', type: 'museum', poi: MOCK_POIS[1] },
@@ -140,22 +109,213 @@ export const MOCK_SEARCH_SUGGESTIONS = [
 ];
 
 export const RECENT_SEARCHES = [
+  { id: 1, text: 'Restaurant Jules Verne', secondary: 'Tour Eiffel, Parigi', time: '2h fa' },
+  { id: 2, text: 'Musée d\'Orsay', secondary: '1 Rue de la Légion d\'Honneur', time: 'Ieri' },
+  { id: 3, text: 'Shakespeare & Company', secondary: '37 Rue de la Bûcherie, Parigi', time: '3 giorni fa' },
+];
+
+// ─── Transport modes ──────────────────────────────────────────────────────────
+// Each mode has its own route geometry, colors, ETA and turn-by-turn steps.
+// In production replace routeCoords + steps with a real Routing API:
+// OpenRouteService (free): https://openrouteservice.org/dev/#/api-docs/v2/directions
+// Valhalla (free, self-hostable): https://github.com/valhalla/valhalla
+export const TRANSPORT_MODES = [
   {
-    id: 1,
-    text: 'Restaurant Jules Verne',
-    secondary: 'Tour Eiffel, Parigi',
-    time: '2h fa',
+    id: 'car',
+    label: 'Auto',
+    shortLabel: 'Auto',
+    icon: '🚗',
+    color: '#4cc9f0',
+    gradientStart: '#4361ee',
+    gradientEnd: '#4cc9f0',
+    lineWidth: 7,
+    duration: '35 min',
+    durationMin: 35,
+    distance: '3.1 km',
+    co2: '0.42 kg',
+    co2Grams: 420,
+    cost: '~€1.20',
+    traffic: 'light',
+    trafficLabel: 'Scorrevole',
+    // Via main boulevards (Quai des Grands-Augustins → Pont de l'Alma)
+    routeCoords: [
+      [2.3499, 48.8530],
+      [2.3440, 48.8547],
+      [2.3370, 48.8557],
+      [2.3260, 48.8563],
+      [2.3130, 48.8570],
+      [2.3020, 48.8577],
+      [2.2960, 48.8580],
+      [2.2945, 48.8584],
+    ],
+    alternatives: [
+      { label: 'Via Pont de la Concorde', duration: '41 min', distance: '3.5 km', traffic: 'heavy' },
+      { label: 'Via Bd. Saint-Germain', duration: '38 min', distance: '3.3 km', traffic: 'moderate' },
+    ],
+    steps: [
+      { text: 'Dirigiti ovest su Pont de l\'Archevêché', dist: '0.2 km', dur: '1 min' },
+      { text: 'Svolta a sinistra su Quai des Grands-Augustins', dist: '1.4 km', dur: '8 min' },
+      { text: 'Attraversa Pont de l\'Alma', dist: '0.4 km', dur: '4 min' },
+      { text: 'Av. du Président Kennedy verso ovest', dist: '0.7 km', dur: '6 min' },
+      { text: 'Svolta a sinistra su Av. Joseph Bouvard', dist: '0.2 km', dur: '2 min' },
+      { text: 'Arrivi a Tour Eiffel — ingresso nord', dist: '', dur: 'Arrivo' },
+    ],
   },
   {
-    id: 2,
-    text: 'Musée d\'Orsay',
-    secondary: '1 Rue de la Légion d\'Honneur',
-    time: 'Ieri',
+    id: 'walk',
+    label: 'A piedi',
+    shortLabel: 'Piedi',
+    icon: '🚶',
+    color: '#10b981',
+    gradientStart: '#059669',
+    gradientEnd: '#10b981',
+    lineWidth: 5,
+    duration: '52 min',
+    durationMin: 52,
+    distance: '3.2 km',
+    co2: '0 kg',
+    co2Grams: 0,
+    cost: 'Gratis',
+    traffic: 'light',
+    trafficLabel: 'Percorso pedonale',
+    // Via Seine south bank quais — scenic walk
+    routeCoords: [
+      [2.3499, 48.8530],
+      [2.3465, 48.8515],
+      [2.3380, 48.8505],
+      [2.3275, 48.8498],
+      [2.3165, 48.8505],
+      [2.3058, 48.8520],
+      [2.2958, 48.8545],
+      [2.2945, 48.8584],
+    ],
+    alternatives: [],
+    steps: [
+      { text: 'Percorri Pont de la Tournelle in direzione ovest', dist: '0.3 km', dur: '4 min' },
+      { text: 'Cammina lungo Quai de la Tournelle (riva sinistra)', dist: '0.9 km', dur: '12 min' },
+      { text: 'Attraversa Pont des Invalides — vista panoramica', dist: '0.3 km', dur: '4 min' },
+      { text: 'Segui i sentieri del Champ de Mars', dist: '1.0 km', dur: '14 min' },
+      { text: 'Dirigiti nord verso l\'ingresso principale', dist: '0.7 km', dur: '10 min' },
+      { text: 'Tour Eiffel — ingresso nord', dist: '', dur: 'Arrivo' },
+    ],
   },
   {
-    id: 3,
-    text: 'Shakespeare & Company',
-    secondary: '37 Rue de la Bûcherie, Parigi',
-    time: '3 giorni fa',
+    id: 'bike',
+    label: 'Bici',
+    shortLabel: 'Bici',
+    icon: '🚲',
+    color: '#f59e0b',
+    gradientStart: '#d97706',
+    gradientEnd: '#fbbf24',
+    lineWidth: 5,
+    duration: '18 min',
+    durationMin: 18,
+    distance: '3.4 km',
+    co2: '0 kg',
+    co2Grams: 0,
+    cost: '~€0.50 Vélib\'',
+    traffic: 'light',
+    trafficLabel: 'Pista ciclabile',
+    // Via Berges de Seine (dedicated cycle path, furthest south)
+    routeCoords: [
+      [2.3499, 48.8530],
+      [2.3455, 48.8505],
+      [2.3350, 48.8490],
+      [2.3225, 48.8483],
+      [2.3095, 48.8490],
+      [2.2972, 48.8508],
+      [2.2945, 48.8584],
+    ],
+    alternatives: [],
+    steps: [
+      { text: 'Preleva Vélib\' alla stazione Île de la Cité', dist: '0.1 km', dur: '1 min' },
+      { text: 'Pista ciclabile Berges de Seine — riva sinistra', dist: '2.1 km', dur: '8 min' },
+      { text: 'Attraversa Pont d\'Iéna (vista sul Trocadéro)', dist: '0.3 km', dur: '2 min' },
+      { text: 'Discendi verso Champ de Mars', dist: '0.7 km', dur: '4 min' },
+      { text: 'Deposita la bici — stazione Vélib\' Tour Eiffel', dist: '0.2 km', dur: '1 min' },
+      { text: 'Tour Eiffel — ingresso est', dist: '', dur: 'Arrivo' },
+    ],
+  },
+  {
+    id: 'transit',
+    label: 'Metrò',
+    shortLabel: 'Metrò',
+    icon: '🚇',
+    color: '#a855f7',
+    gradientStart: '#7c3aed',
+    gradientEnd: '#a855f7',
+    lineWidth: 6,
+    duration: '22 min',
+    durationMin: 22,
+    distance: '3.8 km',
+    co2: '0.08 kg',
+    co2Grams: 80,
+    cost: '€1.90',
+    traffic: 'light',
+    trafficLabel: 'Nessun ritardo',
+    // Walk → RER C (Saint-Michel → Champ de Mars) → walk
+    routeCoords: [
+      [2.3499, 48.8530],
+      [2.3447, 48.8533],
+      [2.3437, 48.8535],
+      [2.3310, 48.8508],
+      [2.3175, 48.8495],
+      [2.3020, 48.8497],
+      [2.2988, 48.8507],
+      [2.2962, 48.8548],
+      [2.2945, 48.8584],
+    ],
+    alternatives: [
+      { label: 'Métro 6 + Bir-Hakeim', duration: '26 min', distance: '2.5 km', traffic: 'light' },
+    ],
+    steps: [
+      { text: '🚶 A piedi fino a Gare Saint-Michel–Notre-Dame', dist: '0.3 km', dur: '4 min' },
+      { text: '🚆 RER C — dir. Versailles-Château-Rive-Gauche', dist: '', dur: '' },
+      { text: '   Fermata Musée d\'Orsay (1ª fermata)', dist: '1.8 km', dur: '3 min' },
+      { text: '   Fermata Champ de Mars–Tour Eiffel (scendi)', dist: '1.2 km', dur: '3 min' },
+      { text: '🚶 A piedi verso nord fino all\'ingresso', dist: '0.5 km', dur: '7 min' },
+      { text: 'Tour Eiffel — ingresso nord', dist: '', dur: 'Arrivo' },
+    ],
+  },
+  {
+    id: 'moto',
+    label: 'Moto',
+    shortLabel: 'Moto',
+    icon: '🏍️',
+    color: '#f97316',
+    gradientStart: '#ea580c',
+    gradientEnd: '#f97316',
+    lineWidth: 6,
+    duration: '22 min',
+    durationMin: 22,
+    distance: '2.8 km',
+    co2: '0.15 kg',
+    co2Grams: 150,
+    cost: '~€0.45',
+    traffic: 'light',
+    trafficLabel: 'Scorrevole',
+    // Via northern route (Pont de la Concorde) — slightly north of car route
+    routeCoords: [
+      [2.3499, 48.8530],
+      [2.3460, 48.8558],
+      [2.3368, 48.8570],
+      [2.3248, 48.8578],
+      [2.3100, 48.8581],
+      [2.2982, 48.8582],
+      [2.2945, 48.8584],
+    ],
+    alternatives: [],
+    steps: [
+      { text: 'Boulevard du Palais verso ovest', dist: '0.3 km', dur: '2 min' },
+      { text: 'Quai de Gesvres — Quai des Tuileries', dist: '0.8 km', dur: '4 min' },
+      { text: 'Attraversa Pont de la Concorde (corsia rapida)', dist: '0.3 km', dur: '3 min' },
+      { text: 'Quai d\'Orsay — Av. du Président Kennedy', dist: '0.9 km', dur: '7 min' },
+      { text: 'Parcheggio moto gratuito Av. Joseph Bouvard', dist: '0.3 km', dur: '2 min' },
+      { text: 'Tour Eiffel — a 200m a piedi', dist: '', dur: 'Arrivo' },
+    ],
   },
 ];
+
+// Lookup helper
+export const getModeById = (id) =>
+  TRANSPORT_MODES.find((m) => m.id === id) ?? TRANSPORT_MODES[0];
