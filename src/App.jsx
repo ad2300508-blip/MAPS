@@ -202,7 +202,8 @@ export default function App() {
 
     // Announce destination + first turn
     const steps = currentRoute.legs?.[0]?.steps ?? [];
-    const firstTurn = steps[1]; // step[0] is always "depart"
+    // Skip arrive step — happens on very short routes where dest is within 1–2 steps
+    const firstTurn = steps[1]?.maneuver?.type !== 'arrive' ? steps[1] : null;
     let announcement = name ? `Navigazione avviata verso ${name}.` : 'Navigazione avviata.';
     if (firstTurn) {
       const instr = maneuverToItalian(
@@ -344,7 +345,7 @@ export default function App() {
         setIsOffRoute(false);
         approachAnnouncedRef.current = false; // allow re-announcement after reroute
         const newSteps  = currentRoute.legs?.[0]?.steps ?? [];
-        const firstTurn = newSteps[1]; // step 0 is always "depart"
+        const firstTurn = newSteps[1]?.maneuver?.type !== 'arrive' ? newSteps[1] : null;
         let msg = 'Percorso ricalcolato.';
         if (firstTurn) {
           const instr = maneuverToItalian(

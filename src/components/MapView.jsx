@@ -8,6 +8,16 @@ import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const SEED = 3;
 
+// Offset a [lng,lat] point by distM meters along bearingDeg (degrees clockwise from north)
+function forwardOffset([lng, lat], bearingDeg, distM) {
+  const R    = 6_371_000;
+  const brng = (bearingDeg * Math.PI) / 180;
+  const lat1 = (lat * Math.PI) / 180;
+  const dLat = (distM / R) * Math.cos(brng);
+  const dLng = (distM / R) * Math.sin(brng) / Math.cos(lat1);
+  return [lng + (dLng * 180) / Math.PI, lat + (dLat * 180) / Math.PI];
+}
+
 // Start near the user's last known position (much better UX on re-launch)
 const INITIAL_VIEW = (() => {
   try {
@@ -231,7 +241,7 @@ export default function MapView({
     [userLocation, userAccuracy],
   );
 
-  // Show the 10 closest POIs; hide automotive POIs for walk/bike modes
+  // Show the closest POIs within 2 km; hide automotive POIs for walk/bike modes
   const AUTOMOTIVE_TYPES = new Set(['fuel', 'parking']);
   const sortedPOIs = useMemo(() => {
     const filtered = (selectedModeId === 'walk' || selectedModeId === 'bike')
@@ -240,6 +250,7 @@ export default function MapView({
     if (!userLocation || !filtered.length) return filtered.slice(0, 10);
     return [...filtered]
       .map(p => ({ ...p, _d: haversineMeters(userLocation, p.coords) }))
+      .filter(p => p._d < 2000)                     // cap to 2 km radius
       .sort((a, b) => a._d - b._d)
       .slice(0, 10);
   }, [nearbyPOIs, userLocation, selectedModeId]);
@@ -384,8 +395,14 @@ export default function MapView({
     const kmh      = (userSpeed ?? 0) * 3.6;
     const navZoom  = kmh > 100 ? 15 : kmh > 50 ? 16 : 17;
     const navPitch = kmh > 100 ? 50 : kmh > 50 ? 55 : 60;
+    // Look-ahead offset: shift center ahead in the travel direction so more road
+    // is visible in front of the user rather than behind them.
+    const lookAheadM  = kmh > 100 ? 350 : kmh > 50 ? 200 : kmh > 20 ? 100 : 50;
+    const center = (userHeading != null)
+      ? forwardOffset(userLocation, userHeading, lookAheadM)
+      : userLocation;
     mapRef.current?.easeTo({
-      center: userLocation, bearing: userHeading ?? 0,
+      center, bearing: userHeading ?? 0,
       zoom: navZoom, pitch: navPitch, duration: 400,
     });
   }, [isNavigating, isFollowing, userLocation, userHeading, mapReady, userSpeed]);

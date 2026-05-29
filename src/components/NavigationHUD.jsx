@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { X, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown } from 'lucide-react';
 import {
   formatDistance,
   formatDuration,
@@ -18,6 +19,45 @@ function arrivalTime(remainSecs) {
   return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Compact row for each upcoming step in the turns list
+function TurnRow({ step, distAccum, modeColor, isFirst }) {
+  const type     = step.maneuver?.type ?? 'straight';
+  const modifier = step.maneuver?.modifier;
+  const icon     = maneuverIcon(type, modifier);
+  const label    = step.name || (type === 'arrive' ? 'Destinazione' : 'Continua');
+  return (
+    <div
+      className="flex items-center gap-3 py-2.5"
+      style={{
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        opacity: isFirst ? 1 : 0.65,
+      }}
+    >
+      <div
+        className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+        style={{
+          background: isFirst ? `${modeColor}22` : 'rgba(255,255,255,0.05)',
+          border: isFirst ? `1.5px solid ${modeColor}55` : '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-slate-200 truncate">{label}</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          {maneuverToItalian(type, modifier, step.name ?? '', step.maneuver?.exit)}
+        </p>
+      </div>
+      <p
+        className="text-xs font-bold tabular-nums flex-shrink-0"
+        style={{ color: isFirst ? modeColor : 'rgba(148,163,184,0.7)' }}
+      >
+        {formatDistance(distAccum)}
+      </p>
+    </div>
+  );
+}
+
 export default function NavigationHUD({
   route,
   currentStepIdx,
@@ -32,6 +72,8 @@ export default function NavigationHUD({
   userAccuracy,
   destName,
 }) {
+  const [showTurns, setShowTurns] = useState(false);
+
   if (!route) return null;
 
   const steps     = route.legs?.[0]?.steps ?? [];
@@ -79,6 +121,16 @@ export default function NavigationHUD({
   const kmhNum      = kmh != null ? parseInt(kmh, 10) : 0;
   const speedColor  = kmhNum > 130 ? '#ef4444' : kmhNum > 100 ? '#f59e0b' : '#ffffff';
 
+  // Build upcoming turns list: steps from currentStepIdx onward (skip depart/arrive)
+  // Accumulate distance so each row shows distance from current position
+  const upcomingTurns = [];
+  let accumDist = distToTurn; // distance to the first upcoming maneuver
+  for (let i = currentStepIdx + 1; i < steps.length && upcomingTurns.length < 6; i++) {
+    const s = steps[i];
+    upcomingTurns.push({ step: s, dist: accumDist });
+    accumDist += s.distance ?? 0;
+  }
+
   return (
     <motion.div
       className="absolute bottom-0 left-0 right-0 z-40"
@@ -113,6 +165,46 @@ export default function NavigationHUD({
           <span className="text-xs font-semibold text-orange-300">Fuori percorso — Ricalcolo…</span>
         </motion.div>
       )}
+
+      {/* Upcoming turns panel */}
+      <AnimatePresence>
+        {showTurns && upcomingTurns.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+            className="mx-3 mb-2 px-4 pt-3 pb-1 rounded-3xl"
+            style={{
+              background: 'rgba(9,9,15,0.97)',
+              backdropFilter: 'blur(32px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+              border: `1.5px solid ${modeColor}30`,
+              boxShadow: '0 -4px 30px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Prossime svolte</p>
+              <button
+                onClick={() => setShowTurns(false)}
+                className="w-6 h-6 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <ChevronDown size={13} className="text-slate-500" />
+              </button>
+            </div>
+            {upcomingTurns.map(({ step: s, dist }, i) => (
+              <TurnRow
+                key={i}
+                step={s}
+                distAccum={dist}
+                modeColor={modeColor}
+                isFirst={i === 0}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div
         className="mx-3 mb-3 rounded-3xl overflow-hidden"
@@ -238,14 +330,25 @@ export default function NavigationHUD({
             </div>
           )}
 
-          {/* Steps remaining */}
-          <div className="flex-1 text-center">
-            {stepsLeft > 0 && (
-              <p className="text-xs text-slate-600">
-                {stepsLeft} {stepsLeft === 1 ? 'svolta' : 'svolte'}
-              </p>
-            )}
-          </div>
+          {/* Turns list toggle */}
+          {stepsLeft > 0 && (
+            <button
+              onClick={() => setShowTurns((v) => !v)}
+              className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 focus:outline-none"
+              style={{
+                background: showTurns ? `${modeColor}18` : 'rgba(255,255,255,0.05)',
+                border: showTurns ? `1px solid ${modeColor}40` : '1px solid rgba(255,255,255,0.07)',
+                transition: 'background 0.3s, border-color 0.3s',
+              }}
+            >
+              <List size={12} style={{ color: showTurns ? modeColor : 'rgba(148,163,184,0.6)' }} />
+              <span className="text-[10px] font-semibold tabular-nums" style={{ color: showTurns ? modeColor : 'rgba(148,163,184,0.6)' }}>
+                {stepsLeft}
+              </span>
+            </button>
+          )}
+
+          <div className="flex-1" />
 
           {/* Remaining distance */}
           <div className="text-center">
