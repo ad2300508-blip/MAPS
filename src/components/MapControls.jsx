@@ -76,31 +76,42 @@ function CompassButton({ bearing, onClick }) {
 export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating }) {
   const [bearing, setBearing] = useState(0);
 
-  // Track map bearing for compass button
+  // Track bearing via map events — reactive and zero-cost when map is still
   useEffect(() => {
     if (!mapApiRef) return;
-    let frame;
-    const check = () => {
+    let unsubscribe = null;
+
+    const trySetup = () => {
       const map = mapApiRef.current?.getMap();
-      if (map) {
-        const b = map.getBearing();
-        setBearing(Math.round(b * 10) / 10);
-      }
+      if (!map) return null;
+      // Read initial bearing
+      setBearing(Math.round(map.getBearing() * 10) / 10);
+      const update = () => setBearing(Math.round(map.getBearing() * 10) / 10);
+      map.on('rotate', update);
+      map.on('rotateend', update);
+      return () => { map.off('rotate', update); map.off('rotateend', update); };
     };
-    // Poll at low frequency; bearing changes are infrequent
-    const id = setInterval(check, 500);
-    return () => clearInterval(id);
+
+    // Poll until map is available, then switch to events
+    const id = setInterval(() => {
+      const cleanup = trySetup();
+      if (cleanup) { unsubscribe = cleanup; clearInterval(id); }
+    }, 200);
+
+    return () => { clearInterval(id); unsubscribe?.(); };
   }, [mapApiRef]);
 
   const zoomIn = () => {
     const map = mapApiRef.current?.getMap();
     if (!map) return;
+    navigator.vibrate?.([10]);
     map.zoomIn({ duration: 350 });
   };
 
   const zoomOut = () => {
     const map = mapApiRef.current?.getMap();
     if (!map) return;
+    navigator.vibrate?.([10]);
     map.zoomOut({ duration: 350 });
   };
 
