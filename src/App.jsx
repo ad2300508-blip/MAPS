@@ -164,21 +164,30 @@ export default function App() {
 
   // ── Long press → reverse geocode → set destination ─────────────────────
   const handleLongPress = useCallback(async ([lng, lat]) => {
+    // Show a placeholder immediately so the panel opens right away
+    handleDestinationSelect({
+      name: 'Caricamento…', address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      coords: [lng, lat], emoji: '📍',
+    });
     try {
       const res  = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
         { headers: { 'Accept-Language': 'it' } },
       );
       const data = await res.json();
-      handleDestinationSelect({
-        name:    data.name || data.display_name?.split(',')[0] || 'Posizione',
-        address: data.display_name || '',
-        coords:  [lng, lat],
-        emoji:   '📍',
+      // Resolve placeholder with real name (only if user hasn't already changed destination)
+      setDestination((prev) => {
+        if (!prev || prev.name !== 'Caricamento…') return prev;
+        return {
+          ...prev,
+          name:    data.name || data.display_name?.split(',')[0] || 'Posizione',
+          address: data.display_name || '',
+        };
       });
     } catch {
-      handleDestinationSelect({
-        name: 'Posizione selezionata', address: '', coords: [lng, lat], emoji: '📍',
+      setDestination((prev) => {
+        if (!prev || prev.name !== 'Caricamento…') return prev;
+        return { ...prev, name: 'Posizione selezionata' };
       });
     }
   }, [handleDestinationSelect]);

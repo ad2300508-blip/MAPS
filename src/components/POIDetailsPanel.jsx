@@ -56,7 +56,17 @@ function StepRow({ step, index, color }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-300 leading-snug">{text}</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="text-sm text-slate-300 leading-snug">{text}</p>
+          {step.ref && (
+            <span
+              className="text-[10px] font-bold px-1 py-0.5 rounded flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#64748b' }}
+            >
+              {step.ref}
+            </span>
+          )}
+        </div>
         {!isLast && step.distance > 10 && (
           <p className="text-xs text-slate-600 mt-0.5">
             {dist}{dur > 0 ? ` · ${dur} min` : ''}
