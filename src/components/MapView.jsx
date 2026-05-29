@@ -197,6 +197,7 @@ export default function MapView({
   const [mapReady,       setMapReady]       = useState(false);
   const [visibleCount,   setVisibleCount]   = useState(SEED);
   const [hasFlownToUser, setHasFlownToUser] = useState(false);
+  const [mapZoom,        setMapZoom]        = useState(INITIAL_VIEW.zoom);
 
   const currentMode    = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
   const nearbyPOIs     = useNearbyPOIs(userLocation, { paused: isNavigating });
@@ -366,6 +367,16 @@ export default function MapView({
     mapRef.current?.easeTo({ pitch: is3DMode ? 52 : 0, duration: 850 });
   }, [is3DMode, mapReady, isNavigating]);
 
+  // Track zoom level to hide POI chips when too far out
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const onZoom = () => setMapZoom(map.getZoom());
+    map.on('zoom', onZoom);
+    return () => map.off('zoom', onZoom);
+  }, [mapReady]);
+
   // Detect user manually panning during navigation
   useEffect(() => {
     if (!mapReady || !onUserPan) return;
@@ -463,8 +474,8 @@ export default function MapView({
           </Marker>
         )}
 
-        {/* Nearby POIs — hidden during navigation, closest 10 only */}
-        {!isNavigating && sortedPOIs.map((poi) => (
+        {/* Nearby POIs — hidden during navigation or when zoomed out */}
+        {!isNavigating && mapZoom >= 13 && sortedPOIs.map((poi) => (
           <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
             <POIChip poi={poi} onTap={onPOITap} />
           </Marker>

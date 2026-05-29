@@ -2,6 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader } from 'lucide-react';
 import { TRANSPORT_MODES, formatDuration, formatDistance, formatCO2, formatCost } from '../data/mockData';
 
+function eta(secs) {
+  const d = new Date(Date.now() + secs * 1000);
+  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
 function ModeChip({ mode, isSelected, routeData, loading, onClick }) {
   const dur = routeData ? formatDuration(routeData.duration) : null;
 
@@ -92,7 +97,12 @@ export default function TransportModeSelector({
                       {selectedMode.co2PerKm === 0 ? 'Emissioni zero' : `${selectedMode.co2PerKm} g CO₂/km`}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500 truncate max-w-[140px]">→ {destination.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold" style={{ color: selectedMode.color }}>
+                      {eta(currentRoute.duration)}
+                    </span>
+                    <span className="text-xs text-slate-500 truncate max-w-[100px]">→ {destination.name}</span>
+                  </div>
                 </div>
 
                 <div className="flex items-baseline gap-3 flex-wrap">
