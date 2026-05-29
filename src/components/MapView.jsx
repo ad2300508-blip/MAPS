@@ -510,13 +510,24 @@ export default function MapView({
           if (!nextStep || nextStep.maneuver?.type === 'arrive') return null;
           const loc = nextStep.maneuver?.location;
           if (!loc) return null;
+          const distToTurn = userLocation ? haversineMeters(userLocation, loc) : null;
           return (
-            <Marker longitude={loc[0]} latitude={loc[1]} anchor="center">
-              <TurnMarker
-                type={nextStep.maneuver?.type}
-                modifier={nextStep.maneuver?.modifier}
-                color={currentMode.color}
-              />
+            <Marker longitude={loc[0]} latitude={loc[1]} anchor="bottom">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <TurnMarker
+                  type={nextStep.maneuver?.type}
+                  modifier={nextStep.maneuver?.modifier}
+                  color={currentMode.color}
+                />
+                {distToTurn != null && distToTurn < 1500 && (
+                  <div style={{
+                    fontSize: 9, fontWeight: 700, color: currentMode.color,
+                    marginTop: 2, textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                  }}>
+                    {formatDistance(distToTurn)}
+                  </div>
+                )}
+              </div>
             </Marker>
           );
         })()}

@@ -35,7 +35,7 @@ export default function NavigationHUD({
   if (!route) return null;
 
   const steps     = route.legs?.[0]?.steps ?? [];
-  const step      = steps[currentStepIdx] ?? steps[steps.length - 1];
+  const step      = steps[currentStepIdx] ?? steps[steps.length - 1] ?? {};
   const nextStep  = steps[currentStepIdx + 1];
   const next2Step = steps[currentStepIdx + 2];
 
