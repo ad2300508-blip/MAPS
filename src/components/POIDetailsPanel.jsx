@@ -283,7 +283,13 @@ export default function POIDetailsPanel({
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-2xl leading-none">{destination.emoji ?? '📍'}</span>
                   </div>
-                  <h2 className="text-xl font-bold text-white leading-tight">{destination.name}</h2>
+                  <motion.h2
+                    className="text-xl font-bold text-white leading-tight"
+                    animate={destination.name === 'Caricamento…' ? { opacity: [0.4, 0.8, 0.4] } : { opacity: 1 }}
+                    transition={destination.name === 'Caricamento…' ? { repeat: Infinity, duration: 1.1 } : { duration: 0.2 }}
+                  >
+                    {destination.name}
+                  </motion.h2>
                   {destination.type && (
                     <span
                       className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full"

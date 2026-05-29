@@ -164,14 +164,14 @@ function TurnMarker({ type, modifier, color }) {
 }
 
 // ─── Nearby POI chip ──────────────────────────────────────────────────────
-function POIChip({ poi, onTap }) {
+function POIChip({ poi, onTap, staggerIdx }) {
   return (
     <motion.button
       onClick={(e) => { e.stopPropagation(); onTap(poi); }}
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       whileTap={{ scale: 0.88 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 22, delay: Math.min(staggerIdx ?? 0, 8) * 0.06 }}
       className="focus:outline-none"
       style={{ cursor: 'pointer' }}
     >
@@ -427,10 +427,11 @@ export default function MapView({
   // Navigation follow mode — only when map is centered (user hasn't panned away)
   useEffect(() => {
     if (!isNavigating || !isFollowing || !userLocation || !mapReady) return;
-    // Scale zoom/pitch to speed: more forward visibility at highway speeds
+    // Scale zoom/pitch to speed: more forward visibility at highway speeds,
+    // lower pitch for walkers/cyclists so more context is visible around them
     const kmh      = (userSpeed ?? 0) * 3.6;
     const navZoom  = kmh > 100 ? 15 : kmh > 50 ? 16 : 17;
-    const navPitch = kmh > 100 ? 50 : kmh > 50 ? 55 : 60;
+    const navPitch = kmh > 100 ? 50 : kmh > 50 ? 55 : kmh > 10 ? 60 : 45;
     // Look-ahead offset: shift center ahead in the travel direction so more road
     // is visible in front of the user rather than behind them.
     const lookAheadM  = kmh > 100 ? 350 : kmh > 50 ? 200 : kmh > 20 ? 100 : 50;
@@ -608,9 +609,10 @@ export default function MapView({
             Limit chip count by zoom level to reduce overlap at low zoom. */}
         {!isNavigating && mapZoom >= 13 && (() => {
           const visibleCap = mapZoom >= 15 ? sortedPOIs.length : mapZoom >= 14 ? 5 : 3;
-          return [...sortedPOIs].slice(0, visibleCap).reverse().map((poi) => (
+          const visible = sortedPOIs.slice(0, visibleCap);
+          return [...visible].reverse().map((poi, revIdx) => (
             <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
-              <POIChip poi={poi} onTap={onPOITap} />
+              <POIChip poi={poi} onTap={onPOITap} staggerIdx={visible.length - 1 - revIdx} />
             </Marker>
           ));
         })()}
