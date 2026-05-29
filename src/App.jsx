@@ -197,7 +197,7 @@ export default function App() {
     // Announce destination + first turn
     const steps = currentRoute.legs?.[0]?.steps ?? [];
     const firstTurn = steps[1]; // step[0] is always "depart"
-    let announcement = `Navigazione avviata verso ${name}.`;
+    let announcement = name ? `Navigazione avviata verso ${name}.` : 'Navigazione avviata.';
     if (firstTurn) {
       const instr = maneuverToItalian(
         firstTurn.maneuver?.type, firstTurn.maneuver?.modifier,

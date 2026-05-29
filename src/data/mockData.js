@@ -245,7 +245,7 @@ export function placeEmoji(osmClass, osmType) {
   }
   const clasMap = {
     railway: '🚂', aeroway: '✈️', natural: '🌿',
-    leisure: '🏖️', historic: '🏰', sport: '⚽',
+    leisure: '🌳', historic: '🏛️', sport: '⚽',
   };
   return clasMap[osmClass] ?? '📍';
 }
