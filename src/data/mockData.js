@@ -212,6 +212,8 @@ export function placeEmoji(osmClass, osmType) {
       hospital: '🏥', pharmacy: '💊', clinic: '🏥',
       fuel: '⛽', parking: '🅿️',
       bank: '🏦', atm: '💳',
+      doctors: '👨‍⚕️', dentist: '🦷',
+      police: '👮', post_office: '📮',
       cinema: '🎬', theatre: '🎭',
       school: '🎓', university: '🎓', library: '📚',
       supermarket: '🛒', marketplace: '🛒',

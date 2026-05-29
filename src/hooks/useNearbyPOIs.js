@@ -11,11 +11,11 @@ const grid = (n) => Math.round(n * 100) / 100; // ~1.1 km grid
 function buildQuery(lat, lng, radius) {
   return `[out:json][timeout:25];
 (
-  node["amenity"~"^(restaurant|cafe|bar|hospital|pharmacy|fuel|bank|cinema|fast_food|pub|ice_cream)$"](around:${radius},${lat},${lng});
+  node["amenity"~"^(restaurant|cafe|bar|hospital|pharmacy|fuel|bank|cinema|fast_food|pub|ice_cream|parking|atm|doctors|dentist|police|post_office)$"](around:${radius},${lat},${lng});
   node["tourism"~"^(museum|attraction|hotel|viewpoint|monument|gallery)$"](around:${radius},${lat},${lng});
   node["shop"~"^(supermarket|mall|convenience|bakery|clothes|electronics)$"](around:${radius},${lat},${lng});
 );
-out 30;`;
+out 35;`;
 }
 
 async function fetchOverpass(query) {
@@ -36,7 +36,7 @@ async function fetchOverpass(query) {
   return null;
 }
 
-export function useNearbyPOIs(location, { radius = 600, paused = false } = {}) {
+export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
   const [pois, setPOIs] = useState([]);
   const keyRef = useRef(null);
 
@@ -54,7 +54,7 @@ export function useNearbyPOIs(location, { radius = 600, paused = false } = {}) {
       if (cancelled || !data) return; // ignore stale or failed results
       const places = (data.elements ?? [])
         .filter((el) => el.tags?.name)
-        .slice(0, 25)
+        .slice(0, 30)
         .map((el) => {
           const osmClass = el.tags.amenity ? 'amenity'
             : el.tags.tourism ? 'tourism'

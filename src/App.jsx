@@ -169,15 +169,19 @@ export default function App() {
     setHasArrived(false);
     setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
-    // Speak the first maneuver
+    // Announce destination + first turn
     const steps = currentRoute.legs?.[0]?.steps ?? [];
-    if (steps[0]) {
-      const instruction = maneuverToItalian(
-        steps[0].maneuver?.type, steps[0].maneuver?.modifier, steps[0].name ?? '',
-        steps[0].maneuver?.exit,
+    const firstTurn = steps[1]; // step[0] is always "depart"
+    let announcement = `Navigazione avviata verso ${name}.`;
+    if (firstTurn) {
+      const instr = maneuverToItalian(
+        firstTurn.maneuver?.type, firstTurn.maneuver?.modifier,
+        firstTurn.name ?? '', firstTurn.maneuver?.exit,
       );
-      speak(`Navigazione avviata. ${instruction}`);
+      const dist = steps[0]?.distance ?? 0;
+      announcement += ` Tra ${formatDistanceVoice(dist)}, ${instr}`;
     }
+    speak(announcement);
   }, [currentRoute, destination, speak]);
 
   // ── Stop navigation ─────────────────────────────────────────────────────
@@ -208,10 +212,13 @@ export default function App() {
     if (currentStepIdx >= steps.length - 1) return;
     const nextLoc = steps[currentStepIdx + 1]?.maneuver?.location;
     if (!nextLoc) return;
-    if (haversineMeters(userLocation, nextLoc) < 50) {
+    // Speed-adaptive threshold: at least 50m, but 3s of travel at current speed.
+    // This ensures the step advances early enough at highway speeds (e.g. ~85m at 100 km/h).
+    const advanceDist = Math.max(50, (speed ?? 0) * 3);
+    if (haversineMeters(userLocation, nextLoc) < advanceDist) {
       setCurrentStepIdx((i) => i + 1);
     }
-  }, [userLocation, isNavigating, currentRoute, currentStepIdx]);
+  }, [userLocation, isNavigating, currentRoute, currentStepIdx, speed]);
 
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
@@ -449,6 +456,7 @@ export default function App() {
                 routesByProfile={routesByProfile}
                 routeLoading={routeLoading}
                 onStartNavigation={handleStartNavigation}
+                userLocation={userLocation}
               />
             </div>
           )}

@@ -6,12 +6,14 @@ import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
 const CATEGORIES = [
   { label: 'Ristoranti', icon: '🍽', q: 'ristorante' },
   { label: 'Caffè',      icon: '☕', q: 'caffè'       },
-  { label: 'Hotel',      icon: '🏨', q: 'hotel'       },
   { label: 'Farmacia',   icon: '💊', q: 'farmacia'    },
   { label: 'Benzina',    icon: '⛽', q: 'distributore benzina' },
   { label: 'Supermercato', icon: '🛒', q: 'supermercato' },
-  { label: 'Ospedale',   icon: '🏥', q: 'ospedale'    },
   { label: 'Parcheggio', icon: '🅿️', q: 'parcheggio'  },
+  { label: 'ATM',        icon: '💳', q: 'bancomat'    },
+  { label: 'Medico',     icon: '👨‍⚕️', q: 'medico'     },
+  { label: 'Hotel',      icon: '🏨', q: 'hotel'       },
+  { label: 'Ospedale',   icon: '🏥', q: 'ospedale'    },
 ];
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';

@@ -114,6 +114,7 @@ export default function POIDetailsPanel({
   routesByProfile,
   routeLoading,
   onStartNavigation,
+  userLocation,
 }) {
   const isMobile    = useIsMobile();
   const dragControls = useDragControls();
@@ -289,6 +290,11 @@ export default function POIDetailsPanel({
                     <div className="flex items-center justify-center gap-2 py-6">
                       <Loader size={18} className="animate-spin text-slate-500" />
                       <span className="text-sm text-slate-500">Calcolo percorso…</span>
+                    </div>
+                  ) : !userLocation ? (
+                    <div className="flex items-center justify-center gap-2 py-6">
+                      <span className="text-base">📡</span>
+                      <span className="text-sm text-slate-500">In attesa del GPS…</span>
                     </div>
                   ) : currentRoute ? (
                     <div
