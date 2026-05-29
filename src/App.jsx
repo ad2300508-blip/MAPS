@@ -335,8 +335,19 @@ export default function App() {
       // Only announce if we were genuinely off-route
       if (isOffRouteRef.current) {
         setIsOffRoute(false);
-        speak('Percorso ricalcolato');
         approachAnnouncedRef.current = false; // allow re-announcement after reroute
+        const newSteps  = currentRoute.legs?.[0]?.steps ?? [];
+        const firstTurn = newSteps[1]; // step 0 is always "depart"
+        let msg = 'Percorso ricalcolato.';
+        if (firstTurn) {
+          const instr = maneuverToItalian(
+            firstTurn.maneuver?.type, firstTurn.maneuver?.modifier,
+            firstTurn.name ?? '', firstTurn.maneuver?.exit,
+          );
+          const dist = newSteps[0]?.distance ?? 0;
+          if (dist > 30) msg += ` Tra ${formatDistanceVoice(dist)}, ${instr}`;
+        }
+        speak(msg);
       }
     }
     prevRouteKeyRef.current = key;
