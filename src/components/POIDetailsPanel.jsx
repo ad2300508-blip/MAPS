@@ -497,7 +497,7 @@ export default function POIDetailsPanel({
                       onClick={() => navigator.share({
                         title: destination.name,
                         text: `${destination.name}${destination.address ? '\n' + destination.address : ''}`,
-                        url: `https://maps.google.com/maps?q=${destination.coords[1]},${destination.coords[0]}`,
+                        url: `https://www.google.com/maps/search/?api=1&query=${destination.coords[1]},${destination.coords[0]}`,
                       }).catch(() => {})}
                       className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium w-full"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}

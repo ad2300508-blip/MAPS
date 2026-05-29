@@ -553,12 +553,16 @@ export default function MapView({
         })()}
 
         {/* Nearby POIs — hidden during navigation or when zoomed out.
-            Render in reverse distance order so closest POI chip is on top (DOM stacking). */}
-        {!isNavigating && mapZoom >= 13 && [...sortedPOIs].reverse().map((poi) => (
-          <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
-            <POIChip poi={poi} onTap={onPOITap} />
-          </Marker>
-        ))}
+            Render in reverse distance order so closest POI chip is on top (DOM stacking).
+            Limit chip count by zoom level to reduce overlap at low zoom. */}
+        {!isNavigating && mapZoom >= 13 && (() => {
+          const visibleCap = mapZoom >= 15 ? sortedPOIs.length : mapZoom >= 14 ? 5 : 3;
+          return [...sortedPOIs].slice(0, visibleCap).reverse().map((poi) => (
+            <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
+              <POIChip poi={poi} onTap={onPOITap} />
+            </Marker>
+          ));
+        })()}
       </Map>
 
       {/* GPS acquiring overlay */}

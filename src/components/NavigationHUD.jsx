@@ -107,7 +107,9 @@ export default function NavigationHUD({
   const remainingSecs   = steps.slice(currentStepIdx).reduce((s, x) => s + (x.duration ?? 0), 0);
   const totalMeters     = steps.reduce((s, x) => s + (x.distance ?? 0), 0);
   const progress        = totalMeters > 0 ? Math.min(1, Math.max(0, 1 - remainingMeters / totalMeters)) : 0;
-  const stepsLeft       = steps.length - currentStepIdx - 1; // turns remaining
+  // Turns remaining — exclude the final "arrive" step since it's not a turn action
+  const stepsLeft = steps.slice(currentStepIdx + 1)
+    .filter(s => s.maneuver?.type !== 'arrive').length;
 
   // Match adaptive distances used by the voice warning system
   const speedMs     = (speed ?? 0);

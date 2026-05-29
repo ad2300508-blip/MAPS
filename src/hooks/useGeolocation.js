@@ -43,6 +43,7 @@ export function useGeolocation() {
           }
           setHeading(Math.round(smoothedHeading));
         } else if (!reliableHeading) {
+          smoothedHeading = null; // discard stale EMA so next reliable heading starts fresh
           setHeading(null); // let compass take over at low speeds
         }
         setError(null);
