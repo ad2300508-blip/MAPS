@@ -10,6 +10,7 @@ import {
   maneuverToItalian,
   maneuverIcon,
   parseOpenNow,
+  haversineMeters,
 } from '../data/mockData';
 
 // ─── Favorites storage ────────────────────────────────────────────────────
@@ -374,7 +375,14 @@ export default function POIDetailsPanel({
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-600 text-center py-4">Percorso non disponibile</p>
+                    <div className="text-center py-4 space-y-1">
+                      <p className="text-sm text-slate-600">Percorso non disponibile</p>
+                      {userLocation && destination?.coords && (
+                        <p className="text-xs text-slate-700">
+                          ~{formatDistance(haversineMeters(userLocation, destination.coords))} in linea d'aria
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {/* Turn-by-turn steps */}
