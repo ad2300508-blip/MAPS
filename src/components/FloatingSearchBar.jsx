@@ -16,17 +16,41 @@ function parseCoords(q) {
 }
 
 const CATEGORIES = [
-  { label: 'Ristoranti', icon: '🍽', q: 'ristorante' },
-  { label: 'Caffè',      icon: '☕', q: 'caffè'       },
-  { label: 'Farmacia',   icon: '💊', q: 'farmacia'    },
-  { label: 'Benzina',    icon: '⛽', q: 'distributore benzina' },
-  { label: 'Supermercato', icon: '🛒', q: 'supermercato' },
-  { label: 'Parcheggio', icon: '🅿️', q: 'parcheggio'  },
-  { label: 'ATM',        icon: '💳', q: 'bancomat'    },
-  { label: 'Medico',     icon: '🩺', q: 'medico'     },
-  { label: 'Hotel',      icon: '🏨', q: 'hotel'       },
-  { label: 'Ospedale',   icon: '🏥', q: 'ospedale'    },
+  { label: 'Ristoranti',   icon: '🍽', q: 'ristorante',           ov: { amenity: 'restaurant' } },
+  { label: 'Caffè',        icon: '☕', q: 'caffè',                 ov: { amenity: 'cafe' } },
+  { label: 'Farmacia',     icon: '💊', q: 'farmacia',              ov: { amenity: 'pharmacy' } },
+  { label: 'Benzina',      icon: '⛽', q: 'distributore benzina',  ov: { amenity: 'fuel' } },
+  { label: 'Supermercato', icon: '🛒', q: 'supermercato',          ov: { shop: 'supermarket' } },
+  { label: 'Parcheggio',   icon: '🅿️', q: 'parcheggio',           ov: { amenity: 'parking' } },
+  { label: 'ATM',          icon: '💳', q: 'bancomat',              ov: { amenity: 'atm' } },
+  { label: 'Medico',       icon: '🩺', q: 'medico',                ov: { amenity: 'doctors' } },
+  { label: 'Hotel',        icon: '🏨', q: 'hotel',                 ov: { tourism: 'hotel' } },
+  { label: 'Ospedale',     icon: '🏥', q: 'ospedale',              ov: { amenity: 'hospital' } },
 ];
+
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+
+async function searchNearbyCategory(lat, lng, ov, radius = 3000) {
+  const [key, val] = Object.entries(ov)[0];
+  const query = `[out:json][timeout:10];(node["${key}"="${val}"](around:${radius},${lat},${lng});way["${key}"="${val}"](around:${radius},${lat},${lng}););out center 12;`;
+  const body  = `data=${encodeURIComponent(query)}`;
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      const res = await fetch(mirror, {
+        method: 'POST', body,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.elements) return data.elements;
+    } catch { /* try next mirror */ }
+  }
+  return null;
+}
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
@@ -155,11 +179,45 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     }
   };
 
-  const handleCategoryTap = (cat) => {
+  const handleCategoryTap = async (cat) => {
     navigator.vibrate?.([15]);
-    setQuery(cat.q);
+    setQuery(cat.label);
     setLoading(true);
+    setResults([]);
     clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+
+    // Prefer Overpass for nearby POI search when we have GPS — much more accurate than Nominatim
+    if (cat.ov && userLocation) {
+      const [lng, lat] = userLocation;
+      const elements = await searchNearbyCategory(lat, lng, cat.ov);
+      if (elements) {
+        const pois = elements
+          .map((el) => {
+            const lon = el.lon ?? el.center?.lon;
+            const elLat = el.lat ?? el.center?.lat;
+            if (lon == null || elLat == null) return null;
+            const [key] = Object.keys(cat.ov);
+            const osmType = el.tags?.[key] ?? '';
+            return {
+              lat: String(elLat), lon: String(lon),
+              display_name: el.tags?.name || cat.label,
+              name: el.tags?.name || cat.label,
+              _addr: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
+              class: key === 'amenity' ? 'amenity' : key === 'shop' ? 'shop' : 'tourism',
+              type: osmType,
+              _d: haversineMeters([lng, lat], [lon, elLat]),
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a._d - b._d);
+        setResults(pois);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Fall back to Nominatim
     search(cat.q);
   };
 
@@ -193,6 +251,11 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const parseResult = (r) => {
     if (r._isCoord) {
       return { ...r, nameShort: r.display_name, address: 'Coordinate GPS', emoji: '📍' };
+    }
+    // Overpass results have _addr and _d pre-computed
+    if (r._d != null) {
+      const emoji = placeEmoji(r.class, r.type);
+      return { ...r, nameShort: r.name || r.display_name || 'Luogo', address: r._addr || '', emoji };
     }
     const parts     = (r.display_name ?? '').split(', ').filter(Boolean);
     const nameShort = parts.length > 0 ? parts.slice(0, 2).join(', ') : (r.name ?? 'Luogo');
@@ -281,7 +344,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                   {results.length > 0 ? (
                     <>
                       <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
-                        Risultati
+                        {results[0]?._d != null ? '📍 Vicino a te' : 'Risultati'}
                       </p>
                       {results.map((r, i) => {
                         const item = parseResult(r);
