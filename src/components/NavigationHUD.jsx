@@ -109,6 +109,18 @@ export default function NavigationHUD({
     ? haversineMeters(userLocation, nextTurnLoc)
     : (step?.distance ?? 0);
 
+  // Distance from current position to next2Step's maneuver point
+  // Accumulate through all intermediate steps (including fillers)
+  let distToNext2 = null;
+  if (next2Step) {
+    let acc = distToTurn;
+    for (let i = currentStepIdx + 1; i < steps.length; i++) {
+      if (steps[i] === next2Step) break;
+      acc += steps[i].distance ?? 0;
+    }
+    distToNext2 = acc;
+  }
+
   // Remaining totals
   const remainingMeters = steps.slice(currentStepIdx).reduce((s, x) => s + (x.distance ?? 0), 0);
   const remainingSecs   = steps.slice(currentStepIdx).reduce((s, x) => s + (x.duration ?? 0), 0);
@@ -269,7 +281,7 @@ export default function NavigationHUD({
                 </p>
               )}
               {destName && (
-                <p className="text-[10px] flex-shrink-0" style={{ color: '#2d3748' }}>
+                <p className="text-[10px] text-slate-600 flex-shrink-0 truncate max-w-[80px]">
                   → {destName}
                 </p>
               )}
@@ -386,6 +398,9 @@ export default function NavigationHUD({
             {next2Step && next2Step.maneuver?.type !== 'arrive' ? (
               <>
                 <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wide">Poi</p>
+                {distToNext2 != null && (
+                  <p className="text-[10px] text-slate-600 tabular-nums">{formatDistance(distToNext2)}</p>
+                )}
                 <p className="text-xs font-semibold text-slate-400 truncate leading-tight">
                   {maneuverIcon(next2Step.maneuver?.type, next2Step.maneuver?.modifier)}{' '}
                   {maneuverToItalian(next2Step.maneuver?.type, next2Step.maneuver?.modifier, next2Step.name ?? '', next2Step.maneuver?.exit)}
