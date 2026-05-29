@@ -464,17 +464,21 @@ export default function POIDetailsPanel({
                     </a>
                   )}
 
-                  {/* Open in Google Maps */}
+                  {/* Open in Google Maps / directions */}
                   {destination.coords && (
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${destination.coords[1]},${destination.coords[0]}`}
+                      href={
+                        userLocation
+                          ? `https://www.google.com/maps/dir/?api=1&origin=${userLocation[1]},${userLocation[0]}&destination=${destination.coords[1]},${destination.coords[0]}`
+                          : `https://www.google.com/maps/search/?api=1&query=${destination.coords[1]},${destination.coords[0]}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium"
                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
                     >
                       <span style={{ fontSize: 16 }}>🗺️</span>
-                      Apri in Google Maps
+                      {userLocation ? 'Indicazioni in Google Maps' : 'Apri in Google Maps'}
                     </a>
                   )}
 

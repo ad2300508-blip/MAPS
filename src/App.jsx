@@ -307,10 +307,14 @@ export default function App() {
       const d = haversineMeters(userLocation, c);
       if (d < min) min = d;
     }
-    const threshold = Math.max(75, (accuracy ?? 0) + 50);
+    // Walk/bike have tighter off-route threshold since turns are at shorter distances
+    const isWalkBike2 = selectedModeId === 'walk' || selectedModeId === 'bike';
+    const threshold = isWalkBike2
+      ? Math.max(30, (accuracy ?? 0) + 15)
+      : Math.max(75, (accuracy ?? 0) + 50);
     // Hysteresis: once off-route, require coming within 55% of threshold before clearing
     // This prevents rapid banner toggling when GPS jitter puts the user near the boundary
-    const leaveThreshold = Math.max(35, threshold * 0.55);
+    const leaveThreshold = Math.max(isWalkBike2 ? 15 : 35, threshold * 0.55);
     const offNow = prevOffRouteRef.current ? min > leaveThreshold : min > threshold;
     setIsOffRoute(offNow);
     if (offNow && !prevOffRouteRef.current) {
