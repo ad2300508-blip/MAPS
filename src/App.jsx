@@ -36,8 +36,10 @@ export default function App() {
   const [mapCentered,    setMapCentered]    = useState(true);
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
   const [isMuted,        setIsMuted]        = useState(false);
+  const [arrivedStats, setArrivedStats] = useState(null); // { secs, meters }
   const mapApiRef    = useRef(null);
   const navDestRef   = useRef(null);   // keeps destination marker visible during navigation
+  const navStartRef  = useRef(null);   // navigation start timestamp (ms)
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
   const { location: userLocation, heading: gpsHeading, speed, accuracy, error: gpsError } = useGeolocation();
@@ -81,9 +83,12 @@ export default function App() {
   const drivingDest   = (!isNavigating || currentProfile === 'driving') ? routingCoords : null;
   const footDest      = (!isNavigating || currentProfile === 'foot')    ? routingCoords : null;
   const bikeDest      = (!isNavigating || currentProfile === 'bike')    ? routingCoords : null;
-  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving');
-  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot');
-  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike');
+  // Use fine snap (~100m) when off-route for fast rerouting; coarse (~300m) otherwise
+  // to reduce OSRM API calls 3x during normal navigation
+  const snapFine = !isNavigating || isOffRoute;
+  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving', { fine: snapFine });
+  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot',    { fine: snapFine });
+  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike',    { fine: snapFine });
   const routesByProfile = useMemo(
     () => ({ driving: drivingRoute, foot: footRoute, bike: bikeRoute }),
     [drivingRoute, footRoute, bikeRoute],
@@ -196,8 +201,10 @@ export default function App() {
     setIsNavigating(true);
     setCurrentStepIdx(0);
     setHasArrived(false);
+    setArrivedStats(null);
     prevOffRouteRef.current  = false;  // reset off-route hysteresis for new navigation session
     prevRouteKeyRef.current  = null;   // reset so first route load isn't treated as a reroute
+    navStartRef.current      = Date.now();
     setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
     // Announce destination + first turn
@@ -225,6 +232,11 @@ export default function App() {
     navDestRef.current = null;  // clear destination marker
     cancel();
     if (arrived) {
+      const elapsedSecs = navStartRef.current
+        ? Math.round((Date.now() - navStartRef.current) / 1000)
+        : null;
+      const routeMeters = currentRoute?.distance ?? null;
+      setArrivedStats({ secs: elapsedSecs, meters: routeMeters });
       setHasArrived(true);
       speak('Sei arrivato a destinazione');
       navigator.vibrate?.([100, 80, 100, 80, 200]);
@@ -235,7 +247,7 @@ export default function App() {
         pitch: is3DMode ? 52 : 0, bearing: 0, duration: 1200,
       });
     }
-  }, [is3DMode, speak, cancel]);
+  }, [is3DMode, speak, cancel, currentRoute]);
 
   // ── Auto-advance steps ──────────────────────────────────────────────────
   useEffect(() => {
@@ -257,6 +269,7 @@ export default function App() {
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
   const vibrate = useCallback((pattern) => { navigator.vibrate?.(pattern); }, []);
+  const spokenAt500Ref    = useRef(false);
   const spokenAt200Ref    = useRef(false);
   const spokenAt60Ref     = useRef(false);
   const warnStepRef       = useRef(-1);  // reset refs when step changes
@@ -265,6 +278,7 @@ export default function App() {
     // Reset warning flags when the step changes
     if (warnStepRef.current !== currentStepIdx) {
       warnStepRef.current    = currentStepIdx;
+      spokenAt500Ref.current = false;
       spokenAt200Ref.current = false;
       spokenAt60Ref.current  = false;
     }
@@ -280,11 +294,18 @@ export default function App() {
     );
 
     // Scale warning distance to speed: aim for ~10 s advance notice (min 200m / 60m)
-    const speedMs   = speed ?? 0;
-    const warnDist   = Math.max(200, speedMs * 10);
-    const urgentDist = Math.max(60,  speedMs * 4);
+    const speedMs    = speed ?? 0;
+    const kmh        = speedMs * 3.6;
+    const earlyDist  = Math.max(500, speedMs * 18); // ~18 s advance — highway only
+    const warnDist   = Math.max(200, speedMs * 10); // ~10 s advance
+    const urgentDist = Math.max(60,  speedMs * 4);  // ~4 s advance
 
-    if (dist < warnDist && dist >= urgentDist && !spokenAt200Ref.current) {
+    // Three-tier system: early (highway only, >80 km/h), standard, urgent
+    if (kmh > 80 && dist < earlyDist && dist >= warnDist && !spokenAt500Ref.current) {
+      spokenAt500Ref.current = true;
+      speak(`Attenzione. Tra ${formatDistanceVoice(dist)}, ${instr}`);
+      vibrate([40]);
+    } else if (dist < warnDist && dist >= urgentDist && !spokenAt200Ref.current) {
       spokenAt200Ref.current = true;
       spokenAt60Ref.current  = false;
       speak(`Tra ${formatDistanceVoice(dist)}, ${instr}`);
@@ -293,7 +314,8 @@ export default function App() {
       spokenAt60Ref.current  = true;
       speak(instr, { urgent: true });
       vibrate([80, 60, 80]);
-    } else if (dist >= warnDist) {
+    } else if (dist >= earlyDist) {
+      spokenAt500Ref.current = false;
       spokenAt200Ref.current = false;
       spokenAt60Ref.current  = false;
     }
@@ -600,6 +622,7 @@ export default function App() {
           {hasArrived && (
             <ArrivedOverlay
               destName={navDestName}
+              stats={arrivedStats}
               onDismiss={handleDismissArrived}
               onSearchNearby={() => { handleDismissArrived(); setIsSearchActive(true); }}
             />

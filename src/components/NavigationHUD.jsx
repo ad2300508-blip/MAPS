@@ -364,6 +364,9 @@ export default function NavigationHUD({
             <p className="text-sm font-bold" style={{ color: modeColor }}>
               {arrivalTime(remainingSecs)}
             </p>
+            <p className="text-[9px] text-slate-600">
+              ~{Math.ceil(remainingSecs / 60)} min
+            </p>
           </div>
 
           <div className="w-px h-8 bg-white/8 mx-1" />

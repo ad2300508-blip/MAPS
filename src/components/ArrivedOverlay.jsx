@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Search } from 'lucide-react';
+import { formatDistance, formatDuration } from '../data/mockData';
 
-export default function ArrivedOverlay({ destName, onDismiss, onSearchNearby }) {
+export default function ArrivedOverlay({ destName, stats, onDismiss, onSearchNearby }) {
   useEffect(() => {
-    const t = setTimeout(onDismiss, 8000);
+    const t = setTimeout(onDismiss, 10000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
@@ -46,6 +47,34 @@ export default function ArrivedOverlay({ destName, onDismiss, onSearchNearby }) 
             <p className="text-sm text-slate-400 leading-snug">{destName}</p>
           )}
         </div>
+
+        {/* Journey stats */}
+        {stats && (stats.secs != null || stats.meters != null) && (
+          <div
+            className="flex items-center justify-center gap-4 px-4 py-2.5 rounded-2xl w-full"
+            style={{ background: 'rgba(76,201,240,0.06)', border: '1px solid rgba(76,201,240,0.12)' }}
+          >
+            {stats.meters != null && (
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-0.5">Distanza</p>
+                <p className="text-sm font-bold" style={{ color: '#4cc9f0' }}>
+                  {formatDistance(stats.meters)}
+                </p>
+              </div>
+            )}
+            {stats.secs != null && stats.meters != null && (
+              <div className="w-px h-8" style={{ background: 'rgba(76,201,240,0.15)' }} />
+            )}
+            {stats.secs != null && (
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-0.5">Durata</p>
+                <p className="text-sm font-bold" style={{ color: '#4cc9f0' }}>
+                  {formatDuration(stats.secs)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col gap-2 w-full">
           {onSearchNearby && (

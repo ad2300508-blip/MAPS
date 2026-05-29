@@ -2,12 +2,14 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 
 const BASE = 'https://router.project-osrm.org/route/v1';
 
-// Round to ~100 m precision so GPS jitter doesn't trigger constant refetches
-const snap = (n) => Math.round(n * 1000) / 1000;
+// Fine snap: ~100 m (off-route, fast rerouting)
+// Coarse snap: ~300 m (on-route, reduces API calls 3x)
+const snapFine   = (n) => Math.round(n * 1000) / 1000;
+const snapCoarse = (n) => Math.round(n * 333)  / 333;
 
 const DELAYS = [2000, 4000, 8000]; // exponential backoff
 
-export function useOSRM(origin, destination, profile) {
+export function useOSRM(origin, destination, profile, { fine = true } = {}) {
   const [route,   setRoute]   = useState(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(null);
@@ -15,11 +17,14 @@ export function useOSRM(origin, destination, profile) {
   const retryRef   = useRef(0);
   const timerRef   = useRef(null);
 
-  // Snapped origin — stable across GPS micro-updates (~100m grid)
+  const snapFn = fine ? snapFine : snapCoarse;
+
+  // Snapped origin — stable across GPS micro-updates
   const snappedOrigin = useMemo(() => {
     if (!origin) return null;
-    return [snap(origin[0]), snap(origin[1])];
-  }, [origin != null ? snap(origin[0]) : null, origin != null ? snap(origin[1]) : null]);
+    return [snapFn(origin[0]), snapFn(origin[1])];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin != null ? snapFn(origin[0]) : null, origin != null ? snapFn(origin[1]) : null]);
 
   useEffect(() => {
     if (!snappedOrigin || !destination) {

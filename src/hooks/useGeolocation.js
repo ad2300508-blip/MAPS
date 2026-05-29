@@ -29,8 +29,12 @@ export function useGeolocation() {
       (pos) => {
         setLocation([pos.coords.longitude, pos.coords.latitude]);
         setAccuracy(pos.coords.accuracy);
-        if (pos.coords.speed != null && pos.coords.speed >= 0) setSpeed(pos.coords.speed);
-        if (pos.coords.heading != null && !isNaN(pos.coords.heading)) {
+        const rawSpeed = pos.coords.speed;
+        // Floor at 0.3 m/s to suppress GPS micro-jitter when stationary
+        if (rawSpeed != null && rawSpeed >= 0) setSpeed(rawSpeed < 0.3 ? 0 : rawSpeed);
+        // GPS heading is unreliable below ~1 m/s (3.6 km/h); let compass take over
+        const reliableHeading = rawSpeed != null && rawSpeed >= 1.0;
+        if (reliableHeading && pos.coords.heading != null && !isNaN(pos.coords.heading)) {
           const raw = pos.coords.heading;
           if (smoothedHeading == null) {
             smoothedHeading = raw;
@@ -38,6 +42,8 @@ export function useGeolocation() {
             smoothedHeading = (smoothedHeading + ALPHA * angleDelta(smoothedHeading, raw) + 360) % 360;
           }
           setHeading(Math.round(smoothedHeading));
+        } else if (!reliableHeading) {
+          setHeading(null); // let compass take over at low speeds
         }
         setError(null);
         setLoading(false);
