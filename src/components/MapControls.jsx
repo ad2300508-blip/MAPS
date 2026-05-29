@@ -1,7 +1,8 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus, Locate, Box, Map } from 'lucide-react';
 
-function ControlButton({ icon: Icon, label, onClick, active, accent, style }) {
+function ControlButton({ icon: Icon, label, onClick, active, accent, style, children }) {
   return (
     <motion.button
       onClick={onClick}
@@ -25,11 +26,13 @@ function ControlButton({ icon: Icon, label, onClick, active, accent, style }) {
         ...style,
       }}
     >
-      <Icon
-        size={18}
-        strokeWidth={2}
-        style={{ color: active ? '#4cc9f0' : accent ? '#4cc9f0' : '#94a3b8' }}
-      />
+      {children ?? (
+        <Icon
+          size={18}
+          strokeWidth={2}
+          style={{ color: active ? '#4cc9f0' : accent ? '#4cc9f0' : '#94a3b8' }}
+        />
+      )}
     </motion.button>
   );
 }
@@ -38,7 +41,57 @@ function Divider() {
   return <div className="w-7 h-px mx-auto" style={{ background: 'rgba(255,255,255,0.07)' }} />;
 }
 
+// Compass rose indicator — rotates with map bearing
+function CompassButton({ bearing, onClick }) {
+  const visible = Math.abs(bearing) > 3; // only show when bearing is non-trivial
+  return (
+    <motion.button
+      onClick={onClick}
+      title="Orienta a Nord"
+      aria-label="Orienta a Nord"
+      whileTap={{ scale: 0.93 }}
+      initial={false}
+      animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.6, pointerEvents: visible ? 'auto' : 'none' }}
+      transition={{ duration: 0.25 }}
+      className="w-11 h-11 flex items-center justify-center rounded-2xl focus:outline-none"
+      style={{
+        background: 'rgba(16,16,28,0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+      }}
+    >
+      {/* Mini compass rose that rotates to show current bearing */}
+      <svg width="22" height="22" viewBox="0 0 22 22" style={{ transform: `rotate(${bearing}deg)`, transition: 'transform 0.3s ease' }}>
+        {/* North triangle (red) */}
+        <polygon points="11,2 9,11 11,9 13,11" fill="#ef4444" />
+        {/* South triangle (white/grey) */}
+        <polygon points="11,20 9,11 11,13 13,11" fill="rgba(255,255,255,0.35)" />
+      </svg>
+    </motion.button>
+  );
+}
+
 export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating }) {
+  const [bearing, setBearing] = useState(0);
+
+  // Track map bearing for compass button
+  useEffect(() => {
+    if (!mapApiRef) return;
+    let frame;
+    const check = () => {
+      const map = mapApiRef.current?.getMap();
+      if (map) {
+        const b = map.getBearing();
+        setBearing(Math.round(b * 10) / 10);
+      }
+    };
+    // Poll at low frequency; bearing changes are infrequent
+    const id = setInterval(check, 500);
+    return () => clearInterval(id);
+  }, [mapApiRef]);
+
   const zoomIn = () => {
     const map = mapApiRef.current?.getMap();
     if (!map) return;
@@ -49,6 +102,13 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
     const map = mapApiRef.current?.getMap();
     if (!map) return;
     map.zoomOut({ duration: 350 });
+  };
+
+  const orientNorth = () => {
+    const map = mapApiRef.current?.getMap();
+    if (!map) return;
+    map.easeTo({ bearing: 0, duration: 600 });
+    navigator.vibrate?.([15]);
   };
 
   return (
@@ -71,6 +131,9 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
         onClick={onMyLocation}
         accent
       />
+
+      {/* Compass / North Up — only appears when map is rotated */}
+      {!isNavigating && <CompassButton bearing={bearing} onClick={orientNorth} />}
 
       {/* 2D / 3D toggle — hidden during navigation (pitch is controlled by follow mode) */}
       {!isNavigating && (

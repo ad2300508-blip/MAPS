@@ -327,6 +327,28 @@ export default function MapView({
     },
   }), [currentMode.lineWidth, hasRoute]);
 
+  // Direction arrows along the route — small ▶ chevrons spaced every 80 px
+  const arrowLayer = useMemo(() => ({
+    id: 'route-arrows', type: 'symbol',
+    layout: {
+      'symbol-placement':           'line',
+      'symbol-spacing':             80,
+      'text-field':                 '▶',
+      'text-size':                  10,
+      'text-rotation-alignment':    'map',
+      'text-pitch-alignment':       'map',
+      'text-ignore-placement':      true,
+      'text-allow-overlap':         true,
+      'text-keep-upright':          false,
+    },
+    paint: {
+      'text-color':       '#ffffff',
+      'text-opacity':     hasRoute ? 0.55 : 0,
+      'text-halo-color':  'rgba(0,0,0,0.3)',
+      'text-halo-width':  0.5,
+    },
+  }), [hasRoute]);
+
   // Animate route drawing
   const animateRoute = useCallback((pts) => {
     cancelAnimationFrame(animRef.current);
@@ -505,6 +527,7 @@ export default function MapView({
           <Layer {...glowLayer} />
           <Layer {...lineLayer} />
           <Layer {...coreLayer} />
+          <Layer {...arrowLayer} />
         </Source>
 
         {/* User location */}
