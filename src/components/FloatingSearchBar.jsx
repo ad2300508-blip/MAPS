@@ -142,7 +142,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     };
 
     // Save to recent
-    const updated = [dest, ...recent.filter((r) => r.name !== dest.name)].slice(0, 5);
+    const updated = [dest, ...recent.filter((r) => r.name !== dest.name)].slice(0, 8);
     setRecent(updated);
     try { localStorage.setItem('maps-recent', JSON.stringify(updated)); } catch {}
 
@@ -299,9 +299,18 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                       {/* Recent searches */}
                       {recent.length > 0 && (
                         <>
-                          <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
-                            Recenti
-                          </p>
+                          <div className="flex items-center justify-between px-4 pt-2 pb-1">
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest">Recenti</p>
+                            <button
+                              onClick={() => {
+                                setRecent([]);
+                                try { localStorage.removeItem('maps-recent'); } catch {}
+                              }}
+                              className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors focus:outline-none"
+                            >
+                              Cancella
+                            </button>
+                          </div>
                           {recent.map((item, i) => (
                             <ResultRow
                               key={i}

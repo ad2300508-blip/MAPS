@@ -238,6 +238,8 @@ export function placeEmoji(osmClass, osmType) {
       bakery: '🥐', clothes: '👗', electronics: '📱',
       books: '📚', sports: '⚽', furniture: '🪑',
       hairdresser: '💇', florist: '🌸',
+      pharmacy: '💊', optician: '👓', jewelry: '💍',
+      hardware: '🔧', toys: '🧸', pet: '🐾',
     };
     return map[osmType] ?? '🛍️';
   }
