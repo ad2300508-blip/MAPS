@@ -67,6 +67,9 @@ const CATEGORIES = [
   { label: 'Medico',       icon: '🩺', q: 'medico',                ov: { amenity: 'doctors' } },
   { label: 'Hotel',        icon: '🏨', q: 'hotel',                 ov: { tourism: 'hotel' } },
   { label: 'Ospedale',     icon: '🏥', q: 'ospedale',              ov: { amenity: 'hospital' } },
+  { label: 'Banca',        icon: '🏦', q: 'banca',                 ov: { amenity: 'bank' } },
+  { label: 'Bar',          icon: '🍺', q: 'bar',                   ov: { amenity: 'bar' } },
+  { label: 'Dentista',     icon: '🦷', q: 'dentista',              ov: { amenity: 'dentist' } },
 ];
 
 const OVERPASS_MIRRORS = [

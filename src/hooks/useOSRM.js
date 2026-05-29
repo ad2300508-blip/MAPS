@@ -9,10 +9,11 @@ const snapCoarse = (n) => Math.round(n * 333)  / 333;
 
 const DELAYS = [2000, 4000, 8000]; // exponential backoff
 
-export function useOSRM(origin, destination, profile, { fine = true } = {}) {
-  const [route,   setRoute]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState(null);
+export function useOSRM(origin, destination, profile, { fine = true, alternatives = false } = {}) {
+  const [route,    setRoute]    = useState(null);
+  const [altRoute, setAltRoute] = useState(null);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState(null);
   const abortRef   = useRef(null);
   const retryRef   = useRef(0);
   const timerRef   = useRef(null);
@@ -29,6 +30,7 @@ export function useOSRM(origin, destination, profile, { fine = true } = {}) {
   useEffect(() => {
     if (!snappedOrigin || !destination) {
       setRoute(null);
+      setAltRoute(null);
       setLoading(false);
       setError(null);
       return;
@@ -43,7 +45,7 @@ export function useOSRM(origin, destination, profile, { fine = true } = {}) {
       `${BASE}/${profile}/` +
       `${snappedOrigin[0]},${snappedOrigin[1]};` +
       `${destination[0]},${destination[1]}` +
-      `?steps=true&geometries=geojson&overview=full`;
+      `?steps=true&geometries=geojson&overview=full${alternatives ? '&alternatives=true' : ''}`;
 
     const attempt = () => {
       setLoading(true);
@@ -54,9 +56,11 @@ export function useOSRM(origin, destination, profile, { fine = true } = {}) {
         .then((data) => {
           if (data.code === 'Ok' && data.routes?.length > 0) {
             setRoute(data.routes[0]);
+            setAltRoute(data.routes[1] ?? null);
             setError(null);
           } else {
             setRoute(null);
+            setAltRoute(null);
             setError('Percorso non trovato');
           }
           setLoading(false);
@@ -84,8 +88,8 @@ export function useOSRM(origin, destination, profile, { fine = true } = {}) {
   }, [
     snappedOrigin?.[0], snappedOrigin?.[1],
     destination?.[0],   destination?.[1],
-    profile,
+    profile, alternatives,
   ]);
 
-  return { route, loading, error };
+  return { route, altRoute, loading, error };
 }

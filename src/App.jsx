@@ -102,14 +102,20 @@ export default function App() {
   const footDest      = (!isNavigating || currentProfile === 'foot')    ? routingCoords : null;
   const bikeDest      = (!isNavigating || currentProfile === 'bike')    ? routingCoords : null;
   // Use fine snap (~100m) when off-route for fast rerouting; coarse (~300m) otherwise
-  // to reduce OSRM API calls 3x during normal navigation
-  const snapFine = !isNavigating || isOffRoute;
-  const { route: drivingRoute, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving', { fine: snapFine });
-  const { route: footRoute,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot',    { fine: snapFine });
-  const { route: bikeRoute,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike',    { fine: snapFine });
+  // to reduce OSRM API calls 3x during normal navigation.
+  // Only request alternative routes during the planning phase (not during active navigation).
+  const snapFine    = !isNavigating || isOffRoute;
+  const needAlts    = !isNavigating;
+  const { route: drivingRoute, altRoute: drivingAlt, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving', { fine: snapFine, alternatives: needAlts });
+  const { route: footRoute,    altRoute: footAlt,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot',    { fine: snapFine, alternatives: needAlts });
+  const { route: bikeRoute,    altRoute: bikeAlt,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike',    { fine: snapFine, alternatives: needAlts });
   const routesByProfile = useMemo(
     () => ({ driving: drivingRoute, foot: footRoute, bike: bikeRoute }),
     [drivingRoute, footRoute, bikeRoute],
+  );
+  const altRoutesByProfile = useMemo(
+    () => ({ driving: drivingAlt, foot: footAlt, bike: bikeAlt }),
+    [drivingAlt, footAlt, bikeAlt],
   );
 
   const currentRoute  = routesByProfile[currentProfile];
@@ -612,6 +618,7 @@ export default function App() {
                 selectedModeId={selectedModeId}
                 onModeChange={handleModeChange}
                 routesByProfile={routesByProfile}
+                altRoutesByProfile={altRoutesByProfile}
                 routeLoading={routeLoading}
                 onStartNavigation={handleStartNavigation}
                 userLocation={userLocation}

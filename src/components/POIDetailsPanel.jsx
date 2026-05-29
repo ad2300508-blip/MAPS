@@ -151,6 +151,7 @@ export default function POIDetailsPanel({
   selectedModeId,
   onModeChange,
   routesByProfile,
+  altRoutesByProfile,
   routeLoading,
   onStartNavigation,
   userLocation,
@@ -199,9 +200,10 @@ export default function POIDetailsPanel({
     });
   }, [isFav, destination]);
 
-  const profileMap = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
+  const profileMap   = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
   const currentMode  = TRANSPORT_MODES.find((m) => m.id === selectedModeId) ?? TRANSPORT_MODES[0];
   const currentRoute = routesByProfile?.[profileMap[selectedModeId]];
+  const altRoute     = altRoutesByProfile?.[profileMap[selectedModeId]] ?? null;
 
   useEffect(() => {
     if (destination) { setActiveTab('directions'); setShowAllSteps(false); }
@@ -402,10 +404,35 @@ export default function POIDetailsPanel({
                         </p>
                       )}
                     </div>
-                  ) : (
+                  ) : null}
+
+                  {/* Alternative route card — only shown when a second OSRM route is available */}
+                  {currentRoute && altRoute && !routeLoading && (
+                    <div
+                      className="rounded-xl px-3 py-2.5"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-600 uppercase tracking-wide font-semibold">🔀 Alternativa</span>
+                        </div>
+                        <span className="text-[11px] text-slate-600">
+                          +{formatDuration(Math.max(0, altRoute.duration - currentRoute.duration))}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        <span className="text-sm font-bold text-slate-400 tabular-nums">
+                          {formatDuration(altRoute.duration)}
+                        </span>
+                        <span className="text-xs text-slate-600">{formatDistance(altRoute.distance)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!currentRoute && !routeLoading && userLocation && (
                     <div className="text-center py-4 space-y-1">
                       <p className="text-sm text-slate-600">Percorso non disponibile</p>
-                      {userLocation && destination?.coords && (
+                      {destination?.coords && (
                         <p className="text-xs text-slate-700">
                           ~{formatDistance(haversineMeters(userLocation, destination.coords))} in linea d'aria
                         </p>
