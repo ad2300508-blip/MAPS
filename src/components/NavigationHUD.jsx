@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown } from 'lucide-react';
+import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown, Share2, Check } from 'lucide-react';
 import {
   formatDistance,
   formatDuration,
@@ -113,7 +113,8 @@ export default function NavigationHUD({
   userAccuracy,
   destName,
 }) {
-  const [showTurns, setShowTurns] = useState(false);
+  const [showTurns,  setShowTurns]  = useState(false);
+  const [etaShared,  setEtaShared]  = useState(false);
 
   if (!route) return null;
 
@@ -453,15 +454,47 @@ export default function NavigationHUD({
 
           <div className="w-px h-8 bg-white/8 mx-1" />
 
-          {/* Arrival time */}
-          <div className="text-center">
-            <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wide">Arrivo</p>
-            <p className="text-sm font-bold" style={{ color: modeColor }}>
-              {arrivalTime(remainingSecs)}
-            </p>
-            <p className="text-[9px] text-slate-600">
-              {formatDuration(remainingSecs)}
-            </p>
+          {/* Arrival time + share ETA */}
+          <div className="flex items-center gap-1.5">
+            <div className="text-center">
+              <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wide">Arrivo</p>
+              <p className="text-sm font-bold" style={{ color: modeColor }}>
+                {arrivalTime(remainingSecs)}
+              </p>
+              <p className="text-[9px] text-slate-600">
+                {formatDuration(remainingSecs)}
+              </p>
+            </div>
+            {(typeof navigator.share === 'function' || navigator.clipboard) && destName && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                animate={etaShared ? { scale: [1, 1.15, 1] } : {}}
+                transition={{ duration: 0.3 }}
+                onClick={() => {
+                  const eta = arrivalTime(remainingSecs);
+                  const dur = formatDuration(remainingSecs);
+                  const msg = `Sarò a ${destName} alle ${eta} (ancora ${dur})`;
+                  navigator.vibrate?.([15]);
+                  if (typeof navigator.share === 'function') {
+                    navigator.share({ title: 'Il mio ETA', text: msg }).catch(() => {});
+                  } else {
+                    navigator.clipboard?.writeText(msg).catch(() => {});
+                  }
+                  setEtaShared(true);
+                  setTimeout(() => setEtaShared(false), 2000);
+                }}
+                className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 focus:outline-none"
+                style={etaShared
+                  ? { background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }
+                  : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }
+                }
+              >
+                {etaShared
+                  ? <Check size={12} className="text-emerald-400" />
+                  : <Share2 size={12} className="text-slate-500" />
+                }
+              </motion.button>
+            )}
           </div>
 
           <div className="w-px h-8 bg-white/8 mx-1" />

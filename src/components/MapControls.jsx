@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus, Locate, Box, Map, Share2, Layers } from 'lucide-react';
 
-const STYLE_CYCLE = ['dark', 'light', 'voyager'];
-const STYLE_LABEL = { dark: '🌑', light: '☀️', voyager: '🗺' };
-const STYLE_TITLE = { dark: 'Mappa scura', light: 'Mappa chiara', voyager: 'Mappa colorata' };
+const STYLE_CYCLE = ['dark', 'light', 'voyager', 'auto'];
+const STYLE_LABEL = { dark: '🌑', light: '☀️', voyager: '🗺', auto: '🌓' };
+const STYLE_TITLE = { dark: 'Mappa scura', light: 'Mappa chiara', voyager: 'Mappa colorata', auto: 'Automatica (giorno/notte)' };
 
 function ControlButton({ icon: Icon, label, onClick, active, accent, style, children }) {
   return (

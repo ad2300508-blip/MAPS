@@ -1,6 +1,11 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import MapView, { MAP_STYLE_URLS } from './components/MapView';
+
+function getAutoStyleName() {
+  const h = new Date().getHours();
+  return (h < 7 || h >= 21) ? 'dark' : 'voyager';
+}
 import FloatingSearchBar from './components/FloatingSearchBar';
 import POIDetailsPanel from './components/POIDetailsPanel';
 import MapControls from './components/MapControls';
@@ -43,9 +48,17 @@ export default function App() {
   const [mapStyle,       setMapStyle]       = useState(() => {
     try {
       const s = localStorage.getItem('via-map-style');
-      return ['dark', 'light', 'voyager'].includes(s) ? s : 'dark';
+      return ['dark', 'light', 'voyager', 'auto'].includes(s) ? s : 'dark';
     } catch { return 'dark'; }
   });
+  // Reactive effective style — 'auto' evaluates to dark/voyager based on time
+  const [autoEffective, setAutoEffective] = useState(getAutoStyleName);
+  useEffect(() => {
+    if (mapStyle !== 'auto') return;
+    const tick = () => setAutoEffective(getAutoStyleName());
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [mapStyle]);
   const [isUsingAltRoute, setIsUsingAltRoute] = useState(false);
   const [resumeDest,     setResumeDest]     = useState(() => {
     try {
@@ -516,6 +529,7 @@ export default function App() {
 
   const handleMapStyleChange = useCallback((style) => {
     setMapStyle(style);
+    if (style === 'auto') setAutoEffective(getAutoStyleName());
     try { localStorage.setItem('via-map-style', style); } catch {}
   }, []);
 
@@ -603,7 +617,7 @@ export default function App() {
         currentStepIdx={currentStepIdx}
         userAccuracy={accuracy}
         userSpeed={speed}
-        mapStyleUrl={MAP_STYLE_URLS[mapStyle] ?? MAP_STYLE_URLS.dark}
+        mapStyleUrl={MAP_STYLE_URLS[mapStyle === 'auto' ? autoEffective : mapStyle] ?? MAP_STYLE_URLS.dark}
         onPOITap={handlePOITap}
         onLongPress={handleLongPress}
         onUserPan={handleUserPan}
