@@ -141,8 +141,15 @@ export default function App() {
 
   const handlePOITap = useCallback((poi) => {
     handleDestinationSelect({
-      name: poi.name, address: poi.address ?? '',
-      coords: poi.coords, emoji: poi.emoji, type: poi.type,
+      name:    poi.name,
+      address: poi.address ?? '',
+      coords:  poi.coords,
+      emoji:   poi.emoji,
+      type:    poi.type,
+      phone:   poi.phone ?? null,
+      website: poi.website ?? null,
+      hours:   poi.hours ?? null,
+      cuisine: poi.cuisine ?? null,
     });
   }, [handleDestinationSelect]);
 
