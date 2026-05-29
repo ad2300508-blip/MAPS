@@ -45,6 +45,9 @@ export default function App() {
   const [avoidMotorway,  setAvoidMotorway]  = useState(() => {
     try { return localStorage.getItem('via-avoid-motorway') === 'true'; } catch { return false; }
   });
+  const [avoidFerry,     setAvoidFerry]     = useState(() => {
+    try { return localStorage.getItem('via-avoid-ferry') === 'true'; } catch { return false; }
+  });
   const [mapStyle,       setMapStyle]       = useState(() => {
     try {
       const s = localStorage.getItem('via-map-style');
@@ -153,7 +156,10 @@ export default function App() {
   // Only request alternative routes during the planning phase (not during active navigation).
   const snapFine    = !isNavigating || isOffRoute;
   const needAlts    = !isNavigating;
-  const drivingExclude = avoidMotorway ? 'motorway' : null;
+  const drivingExclude = [
+    avoidMotorway ? 'motorway' : null,
+    avoidFerry    ? 'ferry'    : null,
+  ].filter(Boolean).join(',') || null;
   const { route: drivingRoute, altRoute: drivingAlt, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving', { fine: snapFine, alternatives: needAlts, exclude: drivingExclude });
   const { route: footRoute,    altRoute: footAlt,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot',    { fine: snapFine, alternatives: needAlts });
   const { route: bikeRoute,    altRoute: bikeAlt,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike',    { fine: snapFine, alternatives: needAlts });
@@ -173,7 +179,7 @@ export default function App() {
   const routeLoading  = drivingLoading || footLoading || bikeLoading;
 
   // Reset alt selection when destination or mode changes
-  useEffect(() => { setIsUsingAltRoute(false); }, [destination?.coords?.join(), selectedModeId, avoidMotorway]);
+  useEffect(() => { setIsUsingAltRoute(false); }, [destination?.coords?.join(), selectedModeId, avoidMotorway, avoidFerry]);
 
   const handleMapLoaded = useCallback((mapApi) => { mapApiRef.current = mapApi; }, []);
 
@@ -821,6 +827,14 @@ export default function App() {
                   setAvoidMotorway((v) => {
                     const next = !v;
                     try { localStorage.setItem('via-avoid-motorway', next); } catch { }
+                    return next;
+                  });
+                }}
+                avoidFerry={avoidFerry}
+                onToggleAvoidFerry={() => {
+                  setAvoidFerry((v) => {
+                    const next = !v;
+                    try { localStorage.setItem('via-avoid-ferry', next); } catch { }
                     return next;
                   });
                 }}

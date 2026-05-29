@@ -171,6 +171,8 @@ export default function POIDetailsPanel({
   onSelectMainRoute,
   avoidMotorway,
   onToggleAvoidMotorway,
+  avoidFerry,
+  onToggleAvoidFerry,
 }) {
   const isMobile    = useIsMobile();
   const dragControls = useDragControls();
@@ -384,20 +386,36 @@ export default function POIDetailsPanel({
                   />
 
                   {/* Route preferences — only for motorized modes */}
-                  {['car', 'moto', 'transit'].includes(selectedModeId) && onToggleAvoidMotorway && (
+                  {['car', 'moto', 'transit'].includes(selectedModeId) && (
                     <div className="flex gap-2 flex-wrap">
-                      <motion.button
-                        whileTap={{ scale: 0.93 }}
-                        onClick={onToggleAvoidMotorway}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
-                        style={avoidMotorway
-                          ? { background: 'rgba(249,115,22,0.15)', border: '1.5px solid rgba(249,115,22,0.4)', color: '#f97316' }
-                          : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }
-                        }
-                      >
-                        <span>{avoidMotorway ? '✓' : '🚫'}</span>
-                        <span>Evita autostrade</span>
-                      </motion.button>
+                      {onToggleAvoidMotorway && (
+                        <motion.button
+                          whileTap={{ scale: 0.93 }}
+                          onClick={onToggleAvoidMotorway}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
+                          style={avoidMotorway
+                            ? { background: 'rgba(249,115,22,0.15)', border: '1.5px solid rgba(249,115,22,0.4)', color: '#f97316' }
+                            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }
+                          }
+                        >
+                          <span>{avoidMotorway ? '✓' : '🚫'}</span>
+                          <span>Evita autostrade</span>
+                        </motion.button>
+                      )}
+                      {onToggleAvoidFerry && (
+                        <motion.button
+                          whileTap={{ scale: 0.93 }}
+                          onClick={onToggleAvoidFerry}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
+                          style={avoidFerry
+                            ? { background: 'rgba(14,165,233,0.15)', border: '1.5px solid rgba(14,165,233,0.4)', color: '#0ea5e9' }
+                            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }
+                          }
+                        >
+                          <span>{avoidFerry ? '✓' : '⛴'}</span>
+                          <span>Evita traghetti</span>
+                        </motion.button>
+                      )}
                     </div>
                   )}
 
