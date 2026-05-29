@@ -212,7 +212,6 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
         q,
         format: 'json',
         limit: 8,
-        addressdetails: 1,
         'accept-language': 'it,en',
       });
 

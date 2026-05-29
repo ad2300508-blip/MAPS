@@ -69,7 +69,7 @@ export default function ArrivedOverlay({ destName, dest, stats, onDismiss, onSea
         {/* Journey stats */}
         {stats && (stats.secs != null || stats.meters != null) && (
           <div
-            className="flex items-center justify-center gap-4 px-4 py-2.5 rounded-2xl w-full"
+            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-2.5 rounded-2xl w-full"
             style={{ background: 'rgba(76,201,240,0.06)', border: '1px solid rgba(76,201,240,0.12)' }}
           >
             {stats.meters != null && (
@@ -80,20 +80,33 @@ export default function ArrivedOverlay({ destName, dest, stats, onDismiss, onSea
                 </p>
               </div>
             )}
-            {stats.secs != null && stats.meters != null && (
-              <div className="w-px h-8" style={{ background: 'rgba(76,201,240,0.15)' }} />
-            )}
             {stats.secs != null && (
-              <div className="text-center">
-                <p className="text-xs text-slate-500 mb-0.5">Durata</p>
-                <p className="text-sm font-bold" style={{ color: '#4cc9f0' }}>
-                  {formatDuration(stats.secs)}
-                </p>
-              </div>
+              <>
+                {stats.meters != null && (
+                  <div className="w-px h-8 hidden sm:block" style={{ background: 'rgba(76,201,240,0.15)' }} />
+                )}
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 mb-0.5">Durata</p>
+                  <p className="text-sm font-bold" style={{ color: '#4cc9f0' }}>
+                    {formatDuration(stats.secs)}
+                  </p>
+                </div>
+              </>
+            )}
+            {stats.avgSpeed != null && (
+              <>
+                <div className="w-px h-8 hidden sm:block" style={{ background: 'rgba(76,201,240,0.15)' }} />
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 mb-0.5">Velocità media</p>
+                  <p className="text-sm font-bold" style={{ color: '#4cc9f0' }}>
+                    {stats.avgSpeed} km/h
+                  </p>
+                </div>
+              </>
             )}
             {stats.co2Saved != null && (
               <>
-                <div className="w-px h-8" style={{ background: 'rgba(76,201,240,0.15)' }} />
+                <div className="w-px h-8 hidden sm:block" style={{ background: 'rgba(76,201,240,0.15)' }} />
                 <div className="text-center">
                   <p className="text-xs text-slate-500 mb-0.5">CO₂ risparmiata</p>
                   <p className="text-sm font-bold" style={{ color: '#10b981' }}>

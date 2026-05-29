@@ -310,7 +310,11 @@ export default function App() {
       const co2Saved = (navMode.co2PerKm === 0 && routeMeters)
         ? Math.round((routeMeters / 1000) * 120)
         : null;
-      setArrivedStats({ secs: elapsedSecs, meters: routeMeters, co2Saved });
+      // Average speed — actual distance / elapsed time (includes any stops)
+      const avgSpeed = (elapsedSecs > 30 && routeMeters > 50)
+        ? Math.round((routeMeters / elapsedSecs) * 3.6)
+        : null;
+      setArrivedStats({ secs: elapsedSecs, meters: routeMeters, co2Saved, avgSpeed });
       setHasArrived(true);
       speak('Sei arrivato a destinazione');
       navigator.vibrate?.([100, 80, 100, 80, 200]);
