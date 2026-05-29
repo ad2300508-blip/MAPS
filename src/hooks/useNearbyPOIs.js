@@ -9,13 +9,19 @@ const OVERPASS_MIRRORS = [
 const grid = (n) => Math.round(n * 100) / 100; // ~1.1 km grid
 
 function buildQuery(lat, lng, radius) {
+  const amenityRx = 'restaurant|cafe|bar|hospital|pharmacy|fuel|bank|cinema|fast_food|pub|ice_cream|parking|atm|doctors|dentist|police|post_office';
+  const tourismRx = 'museum|attraction|hotel|viewpoint|monument|gallery';
+  const shopRx    = 'supermarket|mall|convenience|bakery|clothes|electronics';
   return `[out:json][timeout:25];
 (
-  node["amenity"~"^(restaurant|cafe|bar|hospital|pharmacy|fuel|bank|cinema|fast_food|pub|ice_cream|parking|atm|doctors|dentist|police|post_office)$"](around:${radius},${lat},${lng});
-  node["tourism"~"^(museum|attraction|hotel|viewpoint|monument|gallery)$"](around:${radius},${lat},${lng});
-  node["shop"~"^(supermarket|mall|convenience|bakery|clothes|electronics)$"](around:${radius},${lat},${lng});
+  node["amenity"~"^(${amenityRx})$"](around:${radius},${lat},${lng});
+  node["tourism"~"^(${tourismRx})$"](around:${radius},${lat},${lng});
+  node["shop"~"^(${shopRx})$"](around:${radius},${lat},${lng});
+  way["amenity"~"^(${amenityRx})$"](around:${radius},${lat},${lng});
+  way["tourism"~"^(${tourismRx})$"](around:${radius},${lat},${lng});
+  way["shop"~"^(${shopRx})$"](around:${radius},${lat},${lng});
 );
-out 35;`;
+out center 35;`;
 }
 
 async function fetchOverpass(query) {
@@ -54,16 +60,20 @@ export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
       if (cancelled || !data) return; // ignore stale or failed results
       const places = (data.elements ?? [])
         .filter((el) => el.tags?.name)
-        .slice(0, 30)
+        .slice(0, 40)
         .map((el) => {
           const osmClass = el.tags.amenity ? 'amenity'
             : el.tags.tourism ? 'tourism'
             : 'shop';
           const osmType = el.tags.amenity ?? el.tags.tourism ?? el.tags.shop ?? '';
+          // ways use center.lat/lon, nodes use lat/lon directly
+          const lon = el.lon ?? el.center?.lon;
+          const lat = el.lat ?? el.center?.lat;
+          if (lon == null || lat == null) return null;
           return {
             id:      el.id,
             name:    el.tags.name,
-            coords:  [el.lon, el.lat],
+            coords:  [lon, lat],
             type:    osmType,
             address: [el.tags['addr:street'], el.tags['addr:housenumber']].filter(Boolean).join(' '),
             emoji:   placeEmoji(osmClass, osmType),
@@ -72,7 +82,8 @@ export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
             hours:   el.tags.opening_hours ?? null,
             cuisine: el.tags.cuisine ?? null,
           };
-        });
+        })
+        .filter(Boolean); // remove null entries (ways without center)
       setPOIs(places);
     });
 
