@@ -59,10 +59,17 @@ export default function NavigationHUD({
   const progress        = totalMeters > 0 ? Math.min(1, Math.max(0, 1 - remainingMeters / totalMeters)) : 0;
   const stepsLeft       = steps.length - currentStepIdx - 1; // turns remaining
 
-  const turnWarning  = distToTurn < 200 && nextStep;
-  const turnUrgent   = distToTurn < 60  && nextStep;
-  const turnColor    = turnUrgent ? '#f97316' : turnWarning ? '#f59e0b' : modeColor;
-  const kmh          = formatSpeed(speed);
+  // Match adaptive distances used by the voice warning system
+  const speedMs     = (speed ?? 0);
+  const warnDist    = Math.max(200, speedMs * 10);
+  const urgentDist  = Math.max(60,  speedMs * 4);
+  const turnWarning = distToTurn < warnDist   && nextStep;
+  const turnUrgent  = distToTurn < urgentDist && nextStep;
+  const turnColor   = turnUrgent ? '#f97316' : turnWarning ? '#f59e0b' : modeColor;
+
+  const kmh         = formatSpeed(speed);
+  const kmhNum      = kmh != null ? parseInt(kmh, 10) : 0;
+  const speedColor  = kmhNum > 130 ? '#ef4444' : kmhNum > 100 ? '#f59e0b' : '#ffffff';
 
   return (
     <motion.div
@@ -172,9 +179,15 @@ export default function NavigationHUD({
           {kmh != null && (
             <div
               className="flex flex-col items-center justify-center rounded-2xl px-3 py-1.5 flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.05)', minWidth: 56 }}
+              style={{
+                background: kmhNum > 130 ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
+                border: kmhNum > 100 ? `1px solid ${speedColor}30` : 'none',
+                minWidth: 56,
+                transition: 'background 0.6s, border-color 0.6s',
+              }}
             >
-              <p className="text-xl font-bold text-white tabular-nums leading-tight">{kmh}</p>
+              <p className="text-xl font-bold tabular-nums leading-tight"
+                style={{ color: speedColor, transition: 'color 0.6s' }}>{kmh}</p>
               <p className="text-[9px] text-slate-500 uppercase tracking-widest">km/h</p>
             </div>
           )}
