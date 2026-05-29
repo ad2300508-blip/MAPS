@@ -4,7 +4,6 @@ import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown } from 'lucide-re
 import {
   formatDistance,
   formatDuration,
-  formatDistanceVoice,
   maneuverIcon,
   maneuverToItalian,
   haversineMeters,
@@ -375,13 +374,13 @@ export default function NavigationHUD({
           <div className="w-px h-8 bg-white/8 mx-1" />
 
           {/* Step after next */}
-          <div className="text-right max-w-[100px]">
-            {next2Step ? (
+          <div className="text-right max-w-[110px]">
+            {next2Step && next2Step.maneuver?.type !== 'arrive' ? (
               <>
                 <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wide">Poi</p>
-                <p className="text-sm font-semibold text-slate-300 truncate">
+                <p className="text-xs font-semibold text-slate-400 truncate leading-tight">
                   {maneuverIcon(next2Step.maneuver?.type, next2Step.maneuver?.modifier)}{' '}
-                  {next2Step.name || 'Continua'}
+                  {maneuverToItalian(next2Step.maneuver?.type, next2Step.maneuver?.modifier, next2Step.name ?? '', next2Step.maneuver?.exit)}
                 </p>
               </>
             ) : (

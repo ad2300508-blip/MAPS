@@ -27,6 +27,8 @@ function buildQuery(lat, lng, radius) {
   way["shop"~"^(${shopRx})$"]["name"](around:${radius},${lat},${lng});
   way["leisure"~"^(${leisureRx})$"]["name"](around:${radius},${lat},${lng});
   way["historic"~"^(${historicRx})$"]["name"](around:${radius},${lat},${lng});
+  relation["leisure"~"^(${leisureRx})$"]["name"](around:${radius},${lat},${lng});
+  relation["historic"~"^(${historicRx})$"]["name"](around:${radius},${lat},${lng});
 );
 out center 50;`;
 }
