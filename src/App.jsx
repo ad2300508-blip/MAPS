@@ -324,6 +324,7 @@ export default function App() {
       if (isOffRouteRef.current) {
         setIsOffRoute(false);
         speak('Percorso ricalcolato');
+        approachAnnouncedRef.current = false; // allow re-announcement after reroute
       }
     }
     prevRouteKeyRef.current = key;
