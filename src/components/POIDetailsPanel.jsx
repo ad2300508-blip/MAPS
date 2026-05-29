@@ -174,6 +174,8 @@ export default function POIDetailsPanel({
       type:    destination.type,
     };
     try { localStorage.setItem(`via-${type}`, JSON.stringify(place)); } catch { }
+    // Notify other components in the same tab (App shortcut chips, FloatingSearchBar)
+    window.dispatchEvent(new CustomEvent('via-places-changed'));
   }, [destination]);
 
   const toggleFavorite = useCallback(() => {

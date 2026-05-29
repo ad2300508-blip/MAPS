@@ -36,7 +36,13 @@ export default function App() {
   const [mapCentered,    setMapCentered]    = useState(true);
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
   const [isMuted,        setIsMuted]        = useState(false);
-  const [arrivedStats, setArrivedStats] = useState(null); // { secs, meters }
+  const [arrivedStats,   setArrivedStats]   = useState(null);
+  const [homePlace, setHomePlace] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-home') ?? 'null'); } catch { return null; }
+  });
+  const [workPlace, setWorkPlace] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-work') ?? 'null'); } catch { return null; }
+  });
   const mapApiRef      = useRef(null);
   const navDestRef     = useRef(null);   // keeps destination marker visible during navigation
   const navStartRef    = useRef(null);   // navigation start timestamp (ms)
@@ -74,6 +80,16 @@ export default function App() {
     window.addEventListener('online',  on);
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
+
+  // ── Sync home/work places when POIDetailsPanel or search bar saves them ─
+  useEffect(() => {
+    const handler = () => {
+      try { setHomePlace(JSON.parse(localStorage.getItem('via-home') ?? 'null')); } catch { }
+      try { setWorkPlace(JSON.parse(localStorage.getItem('via-work') ?? 'null')); } catch { }
+    };
+    window.addEventListener('via-places-changed', handler);
+    return () => window.removeEventListener('via-places-changed', handler);
   }, []);
 
   // ── Real routing ────────────────────────────────────────────────────────
@@ -515,6 +531,42 @@ export default function App() {
                 isOnline={isOnline}
               />
             </div>
+          )}
+        </AnimatePresence>
+
+        {/* Home / Work quick-access chips — visible on idle map when not navigating */}
+        <AnimatePresence>
+          {!isNavigating && !isSearchActive && !destination && (homePlace || workPlace) && (
+            <motion.div
+              className="pointer-events-auto absolute left-1/2 -translate-x-1/2 flex gap-2 z-25"
+              style={{ top: 84 }}
+              initial={{ y: -12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -12, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 30, delay: 0.1 }}
+            >
+              {[
+                { place: homePlace, icon: '🏠', label: 'Casa' },
+                { place: workPlace, icon: '💼', label: 'Lavoro' },
+              ].filter(({ place }) => place).map(({ place, icon, label }) => (
+                <motion.button
+                  key={label}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleDestinationSelect(place)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold focus:outline-none"
+                  style={{
+                    background: 'rgba(12,12,22,0.88)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                    color: '#94a3b8',
+                  }}
+                >
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                </motion.button>
+              ))}
+            </motion.div>
           )}
         </AnimatePresence>
 

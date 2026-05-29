@@ -161,15 +161,25 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     return [...favMatches, ...recMatches].slice(0, 6);
   }, [query, isOnline, favorites, recent]);
 
+  // Sync when search bar opens
   useEffect(() => {
     if (isActive) {
       setTimeout(() => inputRef.current?.focus(), 120);
-      // Re-sync saved places from localStorage (may have been updated by POIDetailsPanel)
       try { setFavorites(JSON.parse(localStorage.getItem('via-favorites') ?? '[]')); } catch { }
       try { setHomePlace(JSON.parse(localStorage.getItem('via-home') ?? 'null')); } catch { }
       try { setWorkPlace(JSON.parse(localStorage.getItem('via-work') ?? 'null')); } catch { }
     }
   }, [isActive]);
+
+  // Sync when another component (e.g. POIDetailsPanel) saves a place
+  useEffect(() => {
+    const handler = () => {
+      try { setHomePlace(JSON.parse(localStorage.getItem('via-home') ?? 'null')); } catch { }
+      try { setWorkPlace(JSON.parse(localStorage.getItem('via-work') ?? 'null')); } catch { }
+    };
+    window.addEventListener('via-places-changed', handler);
+    return () => window.removeEventListener('via-places-changed', handler);
+  }, []);
 
   const search = useCallback(async (q) => {
     abortRef.current?.abort();
@@ -525,6 +535,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                                   onClick={() => {
                                     try { localStorage.removeItem(`via-${key}`); } catch {}
                                     setter(null);
+                                    window.dispatchEvent(new CustomEvent('via-places-changed'));
                                     navigator.vibrate?.([12]);
                                   }}
                                   className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center focus:outline-none"
