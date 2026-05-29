@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/maplibre';
 import { motion } from 'framer-motion';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { getModeById, haversineMeters } from '../data/mockData';
+import { getModeById, haversineMeters, formatDistance } from '../data/mockData';
 import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -158,12 +158,19 @@ function POIChip({ poi, onTap }) {
         maxWidth: 130,
       }}>
         <span style={{ fontSize: 16, lineHeight: 1 }}>{poi.emoji}</span>
-        <span style={{
-          fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {poi.name}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {poi.name}
+          </span>
+          {poi._d != null && (
+            <span style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', lineHeight: 1 }}>
+              {formatDistance(poi._d)}
+            </span>
+          )}
+        </div>
       </div>
       {/* Pin tail */}
       <div style={{
