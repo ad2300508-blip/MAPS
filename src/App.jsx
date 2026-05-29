@@ -858,6 +858,36 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* Passive speed badge — shows when moving without navigation active */}
+        <AnimatePresence>
+          {!isNavigating && !destination && !isSearchActive && speed != null && speed * 3.6 > 5 && (
+            <motion.div
+              className="absolute pointer-events-none"
+              style={{ bottom: 108, left: 16, zIndex: 25 }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <div
+                className="flex flex-col items-center justify-center rounded-2xl px-2.5 py-1.5"
+                style={{
+                  background: 'rgba(12,12,22,0.88)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                  minWidth: 48,
+                }}
+              >
+                <p className="text-xl font-bold tabular-nums text-white leading-tight">
+                  {Math.round(speed * 3.6)}
+                </p>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-tight">km/h</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Navigation HUD */}
         <AnimatePresence>
           {isNavigating && currentRoute && (
