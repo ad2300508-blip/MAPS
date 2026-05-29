@@ -164,11 +164,12 @@ export function maneuverToItalian(type, modifier, name, exit) {
     case 'turn':
       if (modifier === 'left')         return `Svolta a sinistra${street}`;
       if (modifier === 'right')        return `Svolta a destra${street}`;
-      if (modifier === 'sharp left')   return `Svolta nettamente a sinistra`;
-      if (modifier === 'sharp right')  return `Svolta nettamente a destra`;
+      if (modifier === 'sharp left')   return `Svolta nettamente a sinistra${street}`;
+      if (modifier === 'sharp right')  return `Svolta nettamente a destra${street}`;
       if (modifier === 'slight left')  return `Tieni la sinistra${street}`;
       if (modifier === 'slight right') return `Tieni la destra${street}`;
       if (modifier === 'straight')     return `Continua dritto${street}`;
+      if (modifier === 'uturn')        return `Fai inversione di marcia${street}`;
       return `Svolta${street}`;
     case 'notification':
       return `Attenzione${street}`;

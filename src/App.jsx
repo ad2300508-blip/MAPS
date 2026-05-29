@@ -312,13 +312,19 @@ export default function App() {
   }, [currentRoute, isNavigating, speak]);
 
   // ── Arrival detection (uses navDestCoords — not destination which is null) ─
+  const approachAnnouncedRef = useRef(false);
   useEffect(() => {
-    if (!isNavigating || !currentRoute || !userLocation || !navDestCoords) return;
-    const endCoord = navDestCoords;
-    if (haversineMeters(userLocation, endCoord) < 40) {
+    if (!isNavigating) { approachAnnouncedRef.current = false; return; }
+    if (!currentRoute || !userLocation || !navDestCoords) return;
+    const dist = haversineMeters(userLocation, navDestCoords);
+    if (dist < 40) {
       handleStopNavigation(true);
+    } else if (dist < 200 && !approachAnnouncedRef.current) {
+      approachAnnouncedRef.current = true;
+      speak('Stai arrivando a destinazione');
+      navigator.vibrate?.([60]);
     }
-  }, [userLocation, isNavigating, currentRoute, navDestCoords, handleStopNavigation]);
+  }, [userLocation, isNavigating, currentRoute, navDestCoords, handleStopNavigation, speak]);
 
   // ── Map controls ────────────────────────────────────────────────────────
   const handleToggle3D = useCallback(() => {
