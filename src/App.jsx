@@ -510,6 +510,7 @@ export default function App() {
         userHeading={userHeading}
         destination={navDestRef.current ?? destination}
         route={currentRoute}
+        altRoute={!isNavigating ? altRoutesByProfile[currentProfile] ?? null : null}
         selectedModeId={selectedModeId}
         is3DMode={is3DMode}
         isNavigating={isNavigating}
@@ -554,24 +555,30 @@ export default function App() {
               {[
                 { place: homePlace, icon: '🏠', label: 'Casa' },
                 { place: workPlace, icon: '💼', label: 'Lavoro' },
-              ].filter(({ place }) => place).map(({ place, icon, label }) => (
-                <motion.button
-                  key={label}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDestinationSelect(place)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold focus:outline-none"
-                  style={{
-                    background: 'rgba(12,12,22,0.88)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-                    color: '#94a3b8',
-                  }}
-                >
-                  <span>{icon}</span>
-                  <span>{label}</span>
-                </motion.button>
-              ))}
+              ].filter(({ place }) => place).map(({ place, icon, label }) => {
+                const dist = place && userLocation
+                  ? formatDistance(haversineMeters(userLocation, place.coords))
+                  : null;
+                return (
+                  <motion.button
+                    key={label}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleDestinationSelect(place)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold focus:outline-none"
+                    style={{
+                      background: 'rgba(12,12,22,0.88)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+                      color: '#94a3b8',
+                    }}
+                  >
+                    <span>{icon}</span>
+                    <span>{label}</span>
+                    {dist && <span style={{ color: '#64748b', fontWeight: 400 }}>{dist}</span>}
+                  </motion.button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

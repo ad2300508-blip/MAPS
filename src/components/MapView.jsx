@@ -219,6 +219,7 @@ export default function MapView({
   userSpeed,
   destination,
   route,
+  altRoute,
   selectedModeId,
   is3DMode,
   isNavigating,
@@ -261,6 +262,17 @@ export default function MapView({
     const coords = route?.geometry?.coordinates;
     return coords?.length >= 2 ? interpolateLine(coords, 180) : [];
   }, [route]);
+
+  // Alternative route — rendered as a dim background line
+  const altRouteGeoJSON = useMemo(() => {
+    const coords = altRoute?.geometry?.coordinates;
+    if (!coords?.length) return null;
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates: coords },
+    };
+  }, [altRoute]);
 
   const hasRoute = routeCoords.length >= 2;
 
@@ -519,6 +531,23 @@ export default function MapView({
               paint={{ 'fill-color': '#4cc9f0', 'fill-opacity': 0.07 }} />
             <Layer id="accuracy-ring" type="line"
               paint={{ 'line-color': '#4cc9f0', 'line-opacity': 0.25, 'line-width': 1 }} />
+          </Source>
+        )}
+
+        {/* Alternative route — dim background line shown during planning */}
+        {altRouteGeoJSON && (
+          <Source id="alt-route-src" type="geojson" data={altRouteGeoJSON}>
+            <Layer
+              id="alt-route-line"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{
+                'line-color':   currentMode.color,
+                'line-width':   currentMode.lineWidth * 0.55,
+                'line-opacity': 0.28,
+                'line-dasharray': [3, 3],
+              }}
+            />
           </Source>
         )}
 

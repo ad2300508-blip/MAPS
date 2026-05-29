@@ -9,6 +9,47 @@ import {
   haversineMeters,
 } from '../data/mockData';
 
+// Lane indication → unicode arrow
+function laneArrow(ind) {
+  switch (ind) {
+    case 'left':         return '←';
+    case 'sharp left':   return '↰';
+    case 'slight left':  return '↖';
+    case 'right':        return '→';
+    case 'sharp right':  return '↱';
+    case 'slight right': return '↗';
+    case 'uturn':        return '↩';
+    default:             return '↑';
+  }
+}
+
+// Visual lane strip — shows which lanes are valid for the upcoming turn
+function LaneGuide({ lanes, modeColor }) {
+  if (!lanes?.length) return null;
+  return (
+    <div className="flex items-center justify-center gap-1 my-1">
+      {lanes.map((lane, i) => {
+        const ind = lane.indications?.[0] ?? 'straight';
+        return (
+          <div
+            key={i}
+            className="flex items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
+            style={{
+              width: 26, height: 26,
+              background: lane.valid ? `${modeColor}20` : 'rgba(255,255,255,0.04)',
+              border: `1.5px solid ${lane.valid ? modeColor : 'rgba(255,255,255,0.09)'}`,
+              color: lane.valid ? modeColor : '#334155',
+              transition: 'background 0.3s, border-color 0.3s',
+            }}
+          >
+            {laneArrow(ind)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function formatSpeed(mps) {
   if (mps == null || mps < 0) return null;
   return `${Math.round(mps * 3.6)}`;
@@ -102,6 +143,9 @@ export default function NavigationHUD({
   const instruction = type === 'arrive' && nextStep
     ? 'Arriverai a destinazione'
     : rawInstruction;
+
+  // Lane guidance data — from the first intersection of the upcoming maneuver step
+  const lanes = upcomingStep?.intersections?.[0]?.lanes ?? null;
 
   // Distance to the upcoming maneuver point
   const nextTurnLoc = (nextStep ?? step)?.maneuver?.location;
@@ -271,6 +315,7 @@ export default function NavigationHUD({
             >
               {formatDistance(distToTurn)}
             </p>
+            {lanes && <LaneGuide lanes={lanes} modeColor={turnColor} />}
             <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
               {instruction}
             </p>
