@@ -129,7 +129,17 @@ export default function POIDetailsPanel({
     setFavorites((prev) => {
       const next = isFav
         ? prev.filter((f) => !(f.name === destination.name && f.coords?.join() === destination.coords?.join()))
-        : [{ name: destination.name, address: destination.address, coords: destination.coords, emoji: destination.emoji, type: destination.type }, ...prev].slice(0, 20);
+        : [{
+            name:    destination.name,
+            address: destination.address,
+            coords:  destination.coords,
+            emoji:   destination.emoji,
+            type:    destination.type,
+            phone:   destination.phone ?? null,
+            website: destination.website ?? null,
+            hours:   destination.hours ?? null,
+            cuisine: destination.cuisine ?? null,
+          }, ...prev].slice(0, 20);
       saveFavorites(next);
       return next;
     });
