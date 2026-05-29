@@ -398,6 +398,11 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
               onFocus={() => onActiveChange(true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  // Select top result immediately if already loaded
+                  if (results.length > 0) {
+                    handleSelect(parseResult(results[0]));
+                    return;
+                  }
                   clearTimeout(debounceRef.current);
                   search(query);
                   inputRef.current?.blur();

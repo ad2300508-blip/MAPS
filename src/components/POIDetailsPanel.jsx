@@ -228,6 +228,10 @@ export default function POIDetailsPanel({
   const FILLER = new Set(['depart', 'continue', 'new name', 'notification']);
   const steps = rawSteps.filter((s) => !FILLER.has(s.maneuver?.type));
 
+  // "Via X" label — first road with a known name or reference after departure
+  const viaStep = rawSteps.find((s) => s.maneuver?.type !== 'depart' && (s.ref || s.name));
+  const viaLabel = viaStep?.ref ?? (viaStep?.name?.length <= 30 ? viaStep.name : null);
+
   return (
     <AnimatePresence>
       {destination && (
@@ -397,10 +401,19 @@ export default function POIDetailsPanel({
                           {arrivalTimeStr(currentRoute.duration)}
                         </span>
                       </p>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
                         <span>{formatCO2(currentRoute.distance, currentMode)} CO₂</span>
-                        <span>·</span>
-                        <span>Partenza: La tua posizione</span>
+                        {viaLabel && (
+                          <>
+                            <span>·</span>
+                            <span
+                              className="px-1.5 py-0.5 rounded font-semibold"
+                              style={{ background: 'rgba(255,255,255,0.06)', color: '#64748b' }}
+                            >
+                              Via {viaLabel}
+                            </span>
+                          </>
+                        )}
                         {onFitRoute && (
                           <button
                             onClick={onFitRoute}
