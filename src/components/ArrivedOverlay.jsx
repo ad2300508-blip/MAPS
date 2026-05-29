@@ -73,6 +73,19 @@ export default function ArrivedOverlay({ destName, stats, onDismiss, onSearchNea
                 </p>
               </div>
             )}
+            {stats.co2Saved != null && (
+              <>
+                <div className="w-px h-8" style={{ background: 'rgba(76,201,240,0.15)' }} />
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 mb-0.5">CO₂ risparmiata</p>
+                  <p className="text-sm font-bold" style={{ color: '#10b981' }}>
+                    🌱 {stats.co2Saved < 1000
+                      ? `${stats.co2Saved} g`
+                      : `${(stats.co2Saved / 1000).toFixed(2)} kg`}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
 

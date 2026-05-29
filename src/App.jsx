@@ -41,6 +41,7 @@ export default function App() {
   const navDestRef     = useRef(null);   // keeps destination marker visible during navigation
   const navStartRef    = useRef(null);   // navigation start timestamp (ms)
   const navRouteRef    = useRef(null);   // route snapshot at navigation start (for arrival stats)
+  const navModeRef     = useRef(null);   // transport mode at navigation start
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
   const { location: userLocation, heading: gpsHeading, speed, accuracy, error: gpsError } = useGeolocation();
@@ -207,6 +208,7 @@ export default function App() {
     prevRouteKeyRef.current  = null;   // reset so first route load isn't treated as a reroute
     navStartRef.current   = Date.now();
     navRouteRef.current   = currentRoute;   // snapshot for arrival stats
+    navModeRef.current    = selectedModeId; // snapshot mode for CO₂ calculation
     setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
     // Announce destination + first turn
@@ -243,7 +245,12 @@ export default function App() {
         ? Math.round((Date.now() - navStartRef.current) / 1000)
         : null;
       const routeMeters = navRouteRef.current?.distance ?? null;
-      setArrivedStats({ secs: elapsedSecs, meters: routeMeters });
+      const navMode     = getModeById(navModeRef.current ?? 'car');
+      // CO₂ saved vs driving (120 g/km) — only meaningful for zero-emission modes
+      const co2Saved = (navMode.co2PerKm === 0 && routeMeters)
+        ? Math.round((routeMeters / 1000) * 120)
+        : null;
+      setArrivedStats({ secs: elapsedSecs, meters: routeMeters, co2Saved });
       setHasArrived(true);
       speak('Sei arrivato a destinazione');
       navigator.vibrate?.([100, 80, 100, 80, 200]);

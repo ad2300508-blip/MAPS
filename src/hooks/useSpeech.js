@@ -34,7 +34,12 @@ export function useSpeech() {
     utt.lang   = 'it-IT';
     utt.rate   = urgent ? 1.1 : rate;
     utt.volume = 1;
-    const itVoice = voicesRef.current.find((v) => v.lang.startsWith('it'));
+    // Prefer "Google italiano" (best on Android), then avoid compact/low-quality voices
+    const itVoices = voicesRef.current.filter((v) => v.lang.startsWith('it'));
+    const itVoice  =
+      itVoices.find((v) => v.name.toLowerCase().includes('google')) ??
+      itVoices.find((v) => !v.name.toLowerCase().includes('compact')) ??
+      itVoices[0] ?? null;
     if (itVoice) utt.voice = itVoice;
     // Android WebView needs a brief gap after cancel() before speak() is reliable
     setTimeout(() => window.speechSynthesis.speak(utt), 50);
