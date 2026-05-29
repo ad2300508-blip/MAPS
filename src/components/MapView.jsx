@@ -231,14 +231,18 @@ export default function MapView({
     [userLocation, userAccuracy],
   );
 
-  // Show the 10 closest POIs only
+  // Show the 10 closest POIs; hide automotive POIs for walk/bike modes
+  const AUTOMOTIVE_TYPES = new Set(['fuel', 'parking']);
   const sortedPOIs = useMemo(() => {
-    if (!userLocation || !nearbyPOIs.length) return nearbyPOIs.slice(0, 10);
-    return [...nearbyPOIs]
+    const filtered = (selectedModeId === 'walk' || selectedModeId === 'bike')
+      ? nearbyPOIs.filter(p => !AUTOMOTIVE_TYPES.has(p.type))
+      : nearbyPOIs;
+    if (!userLocation || !filtered.length) return filtered.slice(0, 10);
+    return [...filtered]
       .map(p => ({ ...p, _d: haversineMeters(userLocation, p.coords) }))
       .sort((a, b) => a._d - b._d)
       .slice(0, 10);
-  }, [nearbyPOIs, userLocation]);
+  }, [nearbyPOIs, userLocation, selectedModeId]);
 
   // Interpolate OSRM geometry
   const routeCoords = useMemo(() => {

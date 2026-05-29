@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { X, MapPin, Navigation, Star, Loader } from 'lucide-react';
+import { X, MapPin, Navigation, Star, Loader, Copy, Check } from 'lucide-react';
 import {
   TRANSPORT_MODES,
   formatDuration,
@@ -102,6 +102,36 @@ function InlineModeSelector({ selectedModeId, onModeChange, routesByProfile }) {
           </motion.button>
         );
       })}
+    </div>
+  );
+}
+
+// ─── Address row with copy button ─────────────────────────────────────────
+function AddressRow({ text }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
+
+  return (
+    <div className="flex items-start gap-2.5">
+      <MapPin size={15} className="text-slate-600 mt-0.5 flex-shrink-0" />
+      <p className="text-sm text-slate-400 flex-1 leading-snug">{text}</p>
+      {navigator.clipboard && (
+        <button
+          onClick={handleCopy}
+          className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center focus:outline-none"
+          style={{ background: copied ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', transition: 'background 0.2s' }}
+        >
+          {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-slate-500" />}
+        </button>
+      )}
     </div>
   );
 }
@@ -372,10 +402,7 @@ export default function POIDetailsPanel({
                 <div className="space-y-3">
                   {/* Address */}
                   {(destination.address || destination.name) && (
-                    <div className="flex items-start gap-2.5">
-                      <MapPin size={15} className="text-slate-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-slate-400">{destination.address || destination.name}</p>
-                    </div>
+                    <AddressRow text={destination.address || destination.name} />
                   )}
 
                   {/* Cuisine */}
