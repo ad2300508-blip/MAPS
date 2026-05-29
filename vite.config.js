@@ -34,6 +34,12 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'nominatim-cache', expiration: { maxEntries: 100, maxAgeSeconds: 60 * 30 } },
           },
+          // Cache Overpass POI responses (20-minute TTL; session cache in app handles shorter deduplication)
+          {
+            urlPattern: /^https:\/\/(overpass-api\.de|overpass\.kumi\.systems)\//,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'overpass-cache', expiration: { maxEntries: 30, maxAgeSeconds: 60 * 20 } },
+          },
           // Cache Google Fonts
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
@@ -71,12 +77,13 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
-        screenshots: [
+        shortcuts: [
           {
-            label: 'Navigazione 3D con HUD e indicazioni in italiano',
-            sizes: '390x844',
-            type: 'image/png',
-            form_factor: 'narrow',
+            name: 'Cerca destinazione',
+            short_name: 'Cerca',
+            description: 'Apri la ricerca e cerca una destinazione',
+            url: base,
+            icons: [{ src: 'icon-192.png', sizes: '192x192' }],
           },
         ],
       },

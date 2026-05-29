@@ -4,6 +4,7 @@ import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown } from 'lucide-re
 import {
   formatDistance,
   formatDuration,
+  formatDistanceVoice,
   maneuverIcon,
   maneuverToItalian,
   haversineMeters,
@@ -367,7 +368,7 @@ export default function NavigationHUD({
               {arrivalTime(remainingSecs)}
             </p>
             <p className="text-[9px] text-slate-600">
-              ~{Math.ceil(remainingSecs / 60)} min
+              {formatDuration(remainingSecs)}
             </p>
           </div>
 
