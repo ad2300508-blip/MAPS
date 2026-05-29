@@ -334,10 +334,55 @@ export default function POIDetailsPanel({
                 </>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-start gap-2.5">
-                    <MapPin size={15} className="text-slate-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-slate-400">{destination.address || destination.name}</p>
-                  </div>
+                  {/* Address */}
+                  {(destination.address || destination.name) && (
+                    <div className="flex items-start gap-2.5">
+                      <MapPin size={15} className="text-slate-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-slate-400">{destination.address || destination.name}</p>
+                    </div>
+                  )}
+
+                  {/* Cuisine */}
+                  {destination.cuisine && (
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-slate-600 text-sm">🍴</span>
+                      <p className="text-sm text-slate-400 capitalize">{destination.cuisine.replace(/;/g, ', ')}</p>
+                    </div>
+                  )}
+
+                  {/* Opening hours */}
+                  {destination.hours && (
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-slate-600 text-sm">🕐</span>
+                      <p className="text-xs text-slate-400 leading-relaxed">{destination.hours}</p>
+                    </div>
+                  )}
+
+                  {/* Phone */}
+                  {destination.phone && (
+                    <a
+                      href={`tel:${destination.phone}`}
+                      className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
+                    >
+                      <span style={{ fontSize: 16 }}>📞</span>
+                      {destination.phone}
+                    </a>
+                  )}
+
+                  {/* Website */}
+                  {destination.website && (
+                    <a
+                      href={destination.website.startsWith('http') ? destination.website : `https://${destination.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium truncate"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
+                    >
+                      <span style={{ fontSize: 16 }}>🌐</span>
+                      <span className="truncate">{destination.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                    </a>
+                  )}
 
                   {/* Open in Google Maps */}
                   {destination.coords && (
@@ -353,7 +398,7 @@ export default function POIDetailsPanel({
                     </a>
                   )}
 
-                  {/* Share — uses Web Share API (supported on Android Chrome) */}
+                  {/* Share */}
                   {typeof navigator.share === 'function' && destination.coords && (
                     <button
                       onClick={() => navigator.share({

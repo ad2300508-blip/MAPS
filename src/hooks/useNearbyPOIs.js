@@ -67,6 +67,10 @@ export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
             type:    osmType,
             address: [el.tags['addr:street'], el.tags['addr:housenumber']].filter(Boolean).join(' '),
             emoji:   placeEmoji(osmClass, osmType),
+            phone:   el.tags.phone ?? el.tags['contact:phone'] ?? null,
+            website: el.tags.website ?? el.tags['contact:website'] ?? null,
+            hours:   el.tags.opening_hours ?? null,
+            cuisine: el.tags.cuisine ?? null,
           };
         });
       setPOIs(places);
