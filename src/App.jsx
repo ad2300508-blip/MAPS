@@ -158,6 +158,19 @@ export default function App() {
     try { localStorage.setItem('maps-mode', modeId); } catch { }
   }, []);
 
+  const handleFitRoute = useCallback(() => {
+    const loc  = userLocationRef.current;
+    const dest = destination;
+    if (!loc || !dest) return;
+    const west  = Math.min(loc[0], dest.coords[0]);
+    const east  = Math.max(loc[0], dest.coords[0]);
+    const south = Math.min(loc[1], dest.coords[1]);
+    const north = Math.max(loc[1], dest.coords[1]);
+    mapApiRef.current?.fitBounds([[west, south], [east, north]], {
+      padding: 80, pitch: is3DMode ? 48 : 0, bearing: 0, duration: 1200,
+    });
+  }, [destination, is3DMode]);
+
   // ── Start navigation ────────────────────────────────────────────────────
   const handleStartNavigation = useCallback(() => {
     if (!currentRoute || !destination) return;
@@ -466,6 +479,7 @@ export default function App() {
                 routeLoading={routeLoading}
                 onStartNavigation={handleStartNavigation}
                 userLocation={userLocation}
+                onFitRoute={handleFitRoute}
               />
             </div>
           )}

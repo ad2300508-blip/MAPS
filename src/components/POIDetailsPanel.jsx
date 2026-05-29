@@ -115,6 +115,7 @@ export default function POIDetailsPanel({
   routeLoading,
   onStartNavigation,
   userLocation,
+  onFitRoute,
 }) {
   const isMobile    = useIsMobile();
   const dragControls = useDragControls();
@@ -315,6 +316,15 @@ export default function POIDetailsPanel({
                         <span>{formatCO2(currentRoute.distance, currentMode)} CO₂</span>
                         <span>·</span>
                         <span>Partenza: La tua posizione</span>
+                        {onFitRoute && (
+                          <button
+                            onClick={onFitRoute}
+                            className="ml-auto text-[11px] font-semibold focus:outline-none"
+                            style={{ color: currentMode.color }}
+                          >
+                            Vedi tutto
+                          </button>
+                        )}
                       </div>
                       {selectedModeId === 'transit' && (
                         <p className="text-[11px] text-slate-600 mt-2">
