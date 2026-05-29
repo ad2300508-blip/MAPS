@@ -62,13 +62,18 @@ function CompassButton({ bearing, onClick }) {
         boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
       }}
     >
-      {/* Mini compass rose that rotates to show current bearing */}
-      <svg width="22" height="22" viewBox="0 0 22 22" style={{ transform: `rotate(${bearing}deg)`, transition: 'transform 0.3s ease' }}>
-        {/* North triangle (red) */}
-        <polygon points="11,2 9,11 11,9 13,11" fill="#ef4444" />
-        {/* South triangle (white/grey) */}
-        <polygon points="11,20 9,11 11,13 13,11" fill="rgba(255,255,255,0.35)" />
-      </svg>
+      <div className="flex flex-col items-center gap-0.5">
+        {/* Mini compass rose that rotates to show current bearing */}
+        <svg width="22" height="22" viewBox="0 0 22 22" style={{ transform: `rotate(${bearing}deg)`, transition: 'transform 0.3s ease' }}>
+          {/* North triangle (red) */}
+          <polygon points="11,2 9,11 11,9 13,11" fill="#ef4444" />
+          {/* South triangle (white/grey) */}
+          <polygon points="11,20 9,11 11,13 13,11" fill="rgba(255,255,255,0.35)" />
+        </svg>
+        <span style={{ fontSize: 8, color: '#475569', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+          {Math.round(((bearing % 360) + 360) % 360)}°
+        </span>
+      </div>
     </motion.button>
   );
 }

@@ -45,7 +45,7 @@ export function useOSRM(origin, destination, profile, { fine = true, alternative
       `${BASE}/${profile}/` +
       `${snappedOrigin[0]},${snappedOrigin[1]};` +
       `${destination[0]},${destination[1]}` +
-      `?steps=true&geometries=geojson&overview=full${alternatives ? '&alternatives=true' : ''}`;
+      `?steps=true&geometries=geojson&overview=full&generate_hints=false${alternatives ? '&alternatives=true' : ''}`;
 
     const attempt = () => {
       setLoading(true);

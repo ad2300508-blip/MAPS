@@ -479,12 +479,24 @@ export default function App() {
   }, []);
 
   const handleMyLocation = useCallback(() => {
-    if (!userLocationRef.current) return;
+    const loc = userLocationRef.current;
+    if (!loc) return;
+    // Pre-navigation with destination set: show full route extent
+    if (destination?.coords) {
+      const west  = Math.min(loc[0], destination.coords[0]);
+      const east  = Math.max(loc[0], destination.coords[0]);
+      const south = Math.min(loc[1], destination.coords[1]);
+      const north = Math.max(loc[1], destination.coords[1]);
+      mapApiRef.current?.fitBounds([[west, south], [east, north]], {
+        padding: 80, pitch: is3DMode ? 48 : 0, bearing: 0, duration: 1200,
+      });
+      return;
+    }
     mapApiRef.current?.flyTo({
-      center: userLocationRef.current, zoom: 15.5,
+      center: loc, zoom: 15.5,
       pitch: is3DMode ? 52 : 0, bearing: userHeadingRef.current ?? 0, duration: 1200,
     });
-  }, [is3DMode]);
+  }, [is3DMode, destination]);
 
   // ── Android back button ─────────────────────────────────────────────────
   useEffect(() => {
