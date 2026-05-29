@@ -1,6 +1,6 @@
 {
   "appId": "com.maps.nextgen",
-  "appName": "MAPS",
+  "appName": "VIA",
   "webDir": "dist",
   "android": {
     "allowMixedContent": true,
