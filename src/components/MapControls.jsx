@@ -38,7 +38,7 @@ function Divider() {
   return <div className="w-7 h-px mx-auto" style={{ background: 'rgba(255,255,255,0.07)' }} />;
 }
 
-export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation }) {
+export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating }) {
   const zoomIn = () => {
     const map = mapApiRef.current?.getMap();
     if (!map) return;
@@ -72,15 +72,18 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
         accent
       />
 
-      <Divider />
-
-      {/* 2D / 3D toggle */}
-      <ControlButton
-        icon={is3DMode ? Box : Map}
-        label={is3DMode ? 'Passa a 2D' : 'Passa a 3D'}
-        onClick={onToggle3D}
-        active={is3DMode}
-      />
+      {/* 2D / 3D toggle — hidden during navigation (pitch is controlled by follow mode) */}
+      {!isNavigating && (
+        <>
+          <Divider />
+          <ControlButton
+            icon={is3DMode ? Box : Map}
+            label={is3DMode ? 'Passa a 2D' : 'Passa a 3D'}
+            onClick={onToggle3D}
+            active={is3DMode}
+          />
+        </>
+      )}
     </div>
   );
 }

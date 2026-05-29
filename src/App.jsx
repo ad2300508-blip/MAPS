@@ -465,6 +465,7 @@ export default function App() {
             is3DMode={is3DMode}
             onToggle3D={handleToggle3D}
             onMyLocation={handleMyLocation}
+            isNavigating={isNavigating}
           />
         </div>
 

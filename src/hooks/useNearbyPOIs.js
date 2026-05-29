@@ -12,16 +12,17 @@ function buildQuery(lat, lng, radius) {
   const amenityRx = 'restaurant|cafe|bar|hospital|pharmacy|fuel|bank|cinema|fast_food|pub|ice_cream|parking|atm|doctors|dentist|police|post_office';
   const tourismRx = 'museum|attraction|hotel|viewpoint|monument|gallery';
   const shopRx    = 'supermarket|mall|convenience|bakery|clothes|electronics';
-  return `[out:json][timeout:25];
+  // Filter by name at the server so the out-limit applies only to named places
+  return `[out:json][timeout:20];
 (
-  node["amenity"~"^(${amenityRx})$"](around:${radius},${lat},${lng});
-  node["tourism"~"^(${tourismRx})$"](around:${radius},${lat},${lng});
-  node["shop"~"^(${shopRx})$"](around:${radius},${lat},${lng});
-  way["amenity"~"^(${amenityRx})$"](around:${radius},${lat},${lng});
-  way["tourism"~"^(${tourismRx})$"](around:${radius},${lat},${lng});
-  way["shop"~"^(${shopRx})$"](around:${radius},${lat},${lng});
+  node["amenity"~"^(${amenityRx})$"]["name"](around:${radius},${lat},${lng});
+  node["tourism"~"^(${tourismRx})$"]["name"](around:${radius},${lat},${lng});
+  node["shop"~"^(${shopRx})$"]["name"](around:${radius},${lat},${lng});
+  way["amenity"~"^(${amenityRx})$"]["name"](around:${radius},${lat},${lng});
+  way["tourism"~"^(${tourismRx})$"]["name"](around:${radius},${lat},${lng});
+  way["shop"~"^(${shopRx})$"]["name"](around:${radius},${lat},${lng});
 );
-out center 35;`;
+out center 50;`;
 }
 
 async function fetchOverpass(query) {
@@ -32,7 +33,7 @@ async function fetchOverpass(query) {
         method: 'POST',
         body,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        signal: AbortSignal.timeout(28000),
+        signal: AbortSignal.timeout(14000),
       });
       if (!res.ok) continue;
       const data = await res.json();
