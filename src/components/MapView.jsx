@@ -5,7 +5,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { getModeById, haversineMeters, formatDistance, maneuverIcon } from '../data/mockData';
 import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const STYLE_DARK    = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const STYLE_LIGHT   = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const STYLE_VOYAGER = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
+export const MAP_STYLE_URLS = { dark: STYLE_DARK, light: STYLE_LIGHT, voyager: STYLE_VOYAGER };
 const SEED = 3;
 const AUTOMOTIVE_TYPES = new Set(['fuel', 'parking']);
 
@@ -47,7 +50,8 @@ function interpolateLine(coords, targetPts) {
   return result;
 }
 
-function add3DBuildings(map) {
+function add3DBuildings(map, isDark = true) {
+  if (!isDark) return; // 3D buildings only for dark style (light/voyager use flat 2D)
   try {
     const style = map.getStyle();
     const srcId = Object.entries(style.sources).find(([, s]) => s.type === 'vector')?.[0];
@@ -225,6 +229,7 @@ export default function MapView({
   isNavigating,
   isFollowing,
   currentStepIdx,
+  mapStyleUrl,
   onPOITap,
   onLongPress,
   onUserPan,
@@ -376,10 +381,14 @@ export default function MapView({
     setTimeout(() => { animRef.current = requestAnimationFrame(tick); }, 150);
   }, []);
 
+  const mapStyleUrlRef = useRef(mapStyleUrl);
+  useEffect(() => { mapStyleUrlRef.current = mapStyleUrl; }, [mapStyleUrl]);
+
   const handleLoad = useCallback(() => {
-    const map = mapRef.current?.getMap();
+    const map    = mapRef.current?.getMap();
     if (!map) return;
-    add3DBuildings(map);
+    const isDark = !mapStyleUrlRef.current || mapStyleUrlRef.current.includes('dark-matter');
+    add3DBuildings(map, isDark);
     onMapLoaded?.(mapRef.current);
     setMapReady(true);
   }, [onMapLoaded]);
@@ -521,7 +530,7 @@ export default function MapView({
         ref={mapRef}
         initialViewState={INITIAL_VIEW}
         style={{ width: '100%', height: '100%' }}
-        mapStyle={MAP_STYLE}
+        mapStyle={mapStyleUrl ?? STYLE_DARK}
         onLoad={handleLoad}
         antialias
         attributionControl

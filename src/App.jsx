@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import MapView from './components/MapView';
+import MapView, { MAP_STYLE_URLS } from './components/MapView';
 import FloatingSearchBar from './components/FloatingSearchBar';
 import POIDetailsPanel from './components/POIDetailsPanel';
 import MapControls from './components/MapControls';
@@ -40,6 +40,13 @@ export default function App() {
   const [avoidMotorway,  setAvoidMotorway]  = useState(() => {
     try { return localStorage.getItem('via-avoid-motorway') === 'true'; } catch { return false; }
   });
+  const [mapStyle,       setMapStyle]       = useState(() => {
+    try {
+      const s = localStorage.getItem('via-map-style');
+      return ['dark', 'light', 'voyager'].includes(s) ? s : 'dark';
+    } catch { return 'dark'; }
+  });
+  const [isUsingAltRoute, setIsUsingAltRoute] = useState(false);
   const [resumeDest,     setResumeDest]     = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('via-nav-state') ?? 'null');
@@ -134,8 +141,14 @@ export default function App() {
     [drivingAlt, footAlt, bikeAlt],
   );
 
-  const currentRoute  = routesByProfile[currentProfile];
+  const primaryRoute      = routesByProfile[currentProfile];
+  const altRouteForProfile = altRoutesByProfile[currentProfile] ?? null;
+  // When user selects the alt route in planning mode, swap which is "active"
+  const currentRoute = (isUsingAltRoute && altRouteForProfile) ? altRouteForProfile : primaryRoute;
   const routeLoading  = drivingLoading || footLoading || bikeLoading;
+
+  // Reset alt selection when destination or mode changes
+  useEffect(() => { setIsUsingAltRoute(false); }, [destination?.coords?.join(), selectedModeId, avoidMotorway]);
 
   const handleMapLoaded = useCallback((mapApi) => { mapApiRef.current = mapApi; }, []);
 
@@ -501,9 +514,16 @@ export default function App() {
     });
   }, []);
 
+  const handleMapStyleChange = useCallback((style) => {
+    setMapStyle(style);
+    try { localStorage.setItem('via-map-style', style); } catch {}
+  }, []);
+
   const handleMyLocation = useCallback(() => {
     const loc = userLocationRef.current;
     if (!loc) return;
+    // During navigation, re-engage follow mode (same as "Ricentra" button)
+    if (isNavigating) { handleReCenter(); return; }
     // Pre-navigation with destination set: show full route extent
     if (destination?.coords) {
       const west  = Math.min(loc[0], destination.coords[0]);
@@ -519,7 +539,7 @@ export default function App() {
       center: loc, zoom: 15.5,
       pitch: is3DMode ? 52 : 0, bearing: userHeadingRef.current ?? 0, duration: 1200,
     });
-  }, [is3DMode, destination]);
+  }, [is3DMode, destination, isNavigating, handleReCenter]);
 
   // ── Android back button ─────────────────────────────────────────────────
   useEffect(() => {
@@ -575,7 +595,7 @@ export default function App() {
         userHeading={userHeading}
         destination={navDestRef.current ?? destination}
         route={currentRoute}
-        altRoute={!isNavigating ? altRoutesByProfile[currentProfile] ?? null : null}
+        altRoute={!isNavigating ? (isUsingAltRoute ? primaryRoute : altRouteForProfile) : null}
         selectedModeId={selectedModeId}
         is3DMode={is3DMode}
         isNavigating={isNavigating}
@@ -583,6 +603,7 @@ export default function App() {
         currentStepIdx={currentStepIdx}
         userAccuracy={accuracy}
         userSpeed={speed}
+        mapStyleUrl={MAP_STYLE_URLS[mapStyle] ?? MAP_STYLE_URLS.dark}
         onPOITap={handlePOITap}
         onLongPress={handleLongPress}
         onUserPan={handleUserPan}
@@ -711,6 +732,8 @@ export default function App() {
             onMyLocation={handleMyLocation}
             isNavigating={isNavigating}
             userLocation={userLocation}
+            mapStyle={mapStyle}
+            onChangeMapStyle={handleMapStyleChange}
           />
         </div>
 
@@ -750,6 +773,9 @@ export default function App() {
                 onStartNavigation={handleStartNavigation}
                 userLocation={userLocation}
                 onFitRoute={handleFitRoute}
+                isUsingAltRoute={isUsingAltRoute}
+                onSelectAltRoute={() => setIsUsingAltRoute(true)}
+                onSelectMainRoute={() => setIsUsingAltRoute(false)}
                 avoidMotorway={avoidMotorway}
                 onToggleAvoidMotorway={() => {
                   setAvoidMotorway((v) => {

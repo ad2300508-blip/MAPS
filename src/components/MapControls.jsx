@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Minus, Locate, Box, Map, Share2 } from 'lucide-react';
+import { Plus, Minus, Locate, Box, Map, Share2, Layers } from 'lucide-react';
+
+const STYLE_CYCLE = ['dark', 'light', 'voyager'];
+const STYLE_LABEL = { dark: '🌑', light: '☀️', voyager: '🗺' };
+const STYLE_TITLE = { dark: 'Mappa scura', light: 'Mappa chiara', voyager: 'Mappa colorata' };
 
 function ControlButton({ icon: Icon, label, onClick, active, accent, style, children }) {
   return (
@@ -78,7 +82,7 @@ function CompassButton({ bearing, onClick }) {
   );
 }
 
-export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating, userLocation }) {
+export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating, userLocation, mapStyle, onChangeMapStyle }) {
   const [bearing, setBearing] = useState(0);
 
   // Track bearing via map events — reactive and zero-cost when map is still
@@ -186,6 +190,21 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
             onClick={onToggle3D}
             active={is3DMode}
           />
+          {/* Map style cycle: dark → light → voyager */}
+          {onChangeMapStyle && (
+            <ControlButton
+              icon={Layers}
+              label={STYLE_TITLE[mapStyle ?? 'dark']}
+              onClick={() => {
+                const idx  = STYLE_CYCLE.indexOf(mapStyle ?? 'dark');
+                const next = STYLE_CYCLE[(idx + 1) % STYLE_CYCLE.length];
+                onChangeMapStyle(next);
+                navigator.vibrate?.([12]);
+              }}
+            >
+              <span style={{ fontSize: 14, lineHeight: 1 }}>{STYLE_LABEL[mapStyle ?? 'dark']}</span>
+            </ControlButton>
+          )}
         </>
       )}
     </div>

@@ -166,6 +166,9 @@ export default function POIDetailsPanel({
   onStartNavigation,
   userLocation,
   onFitRoute,
+  isUsingAltRoute,
+  onSelectAltRoute,
+  onSelectMainRoute,
   avoidMotorway,
   onToggleAvoidMotorway,
 }) {
@@ -214,8 +217,10 @@ export default function POIDetailsPanel({
 
   const profileMap   = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
   const currentMode  = TRANSPORT_MODES.find((m) => m.id === selectedModeId) ?? TRANSPORT_MODES[0];
-  const currentRoute = routesByProfile?.[profileMap[selectedModeId]];
+  const mainRoute    = routesByProfile?.[profileMap[selectedModeId]];
   const altRoute     = altRoutesByProfile?.[profileMap[selectedModeId]] ?? null;
+  // The route actually shown as "active" (may be the alt if user tapped it)
+  const currentRoute = (isUsingAltRoute && altRoute) ? altRoute : mainRoute;
 
   useEffect(() => {
     if (destination) { setActiveTab('directions'); setShowAllSteps(false); }
@@ -407,28 +412,47 @@ export default function POIDetailsPanel({
                       <span className="text-base">📡</span>
                       <span className="text-sm text-slate-500">In attesa del GPS…</span>
                     </div>
-                  ) : currentRoute ? (
-                    <div
-                      className="rounded-2xl p-4"
-                      style={{ background: `${currentMode.color}0c`, border: `1px solid ${currentMode.color}25` }}
+                  ) : mainRoute ? (
+                    <motion.button
+                      whileTap={isUsingAltRoute ? { scale: 0.98 } : {}}
+                      onClick={isUsingAltRoute ? onSelectMainRoute : undefined}
+                      className="w-full text-left rounded-2xl p-4 focus:outline-none"
+                      style={{
+                        background: isUsingAltRoute ? 'rgba(255,255,255,0.03)' : `${currentMode.color}0c`,
+                        border: !isUsingAltRoute ? `1.5px solid ${currentMode.color}40` : '1px solid rgba(255,255,255,0.07)',
+                        opacity: isUsingAltRoute ? 0.65 : 1,
+                        cursor: isUsingAltRoute ? 'pointer' : 'default',
+                        transition: 'opacity 0.3s, background 0.3s, border-color 0.3s',
+                      }}
                     >
+                      {isUsingAltRoute ? (
+                        <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1.5">
+                          Percorso principale — tocca per selezionare
+                        </p>
+                      ) : altRoute && (
+                        <p className="text-[10px] uppercase tracking-wide font-semibold mb-1.5"
+                          style={{ color: currentMode.color }}>
+                          ✓ Percorso principale (selezionato)
+                        </p>
+                      )}
                       <div className="flex items-baseline gap-3 mb-1">
-                        <span className="text-2xl font-bold tabular-nums" style={{ color: currentMode.color }}>
-                          {formatDuration(currentRoute.duration)}
+                        <span className="text-2xl font-bold tabular-nums"
+                          style={{ color: isUsingAltRoute ? '#64748b' : currentMode.color }}>
+                          {formatDuration(mainRoute.duration)}
                         </span>
-                        <span className="text-sm text-slate-400">{formatDistance(currentRoute.distance)}</span>
+                        <span className="text-sm text-slate-400">{formatDistance(mainRoute.distance)}</span>
                         <span className="ml-auto text-sm font-semibold text-slate-400">
-                          {formatCost(currentRoute.distance, currentMode)}
+                          {formatCost(mainRoute.distance, currentMode)}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mb-2">
                         Arrivo stimato alle{' '}
-                        <span className="font-semibold" style={{ color: currentMode.color }}>
-                          {arrivalTimeStr(currentRoute.duration)}
+                        <span className="font-semibold" style={{ color: isUsingAltRoute ? '#64748b' : currentMode.color }}>
+                          {arrivalTimeStr(mainRoute.duration)}
                         </span>
                       </p>
                       <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-                        <span>{formatCO2(currentRoute.distance, currentMode)} CO₂</span>
+                        <span>{formatCO2(mainRoute.distance, currentMode)} CO₂</span>
                         {viaLabel && (
                           <>
                             <span>·</span>
@@ -440,9 +464,9 @@ export default function POIDetailsPanel({
                             </span>
                           </>
                         )}
-                        {onFitRoute && (
+                        {onFitRoute && !isUsingAltRoute && (
                           <button
-                            onClick={onFitRoute}
+                            onClick={(e) => { e.stopPropagation(); onFitRoute(); }}
                             className="ml-auto text-[11px] font-semibold focus:outline-none"
                             style={{ color: currentMode.color }}
                           >
@@ -455,30 +479,44 @@ export default function POIDetailsPanel({
                           ⚠ Percorso approssimativo — verifica gli orari dei mezzi
                         </p>
                       )}
-                    </div>
+                    </motion.button>
                   ) : null}
 
-                  {/* Alternative route card — only shown when a second OSRM route is available */}
-                  {currentRoute && altRoute && !routeLoading && (
-                    <div
-                      className="rounded-xl px-3 py-2.5"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                  {/* Alternative route card — tappable to select it as the active route */}
+                  {mainRoute && altRoute && !routeLoading && (
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={isUsingAltRoute ? onSelectMainRoute : onSelectAltRoute}
+                      className="w-full text-left rounded-xl px-3 py-2.5 focus:outline-none"
+                      style={isUsingAltRoute
+                        ? { background: `${currentMode.color}12`, border: `1.5px solid ${currentMode.color}40` }
+                        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }
+                      }
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-slate-600 uppercase tracking-wide font-semibold">🔀 Alternativa</span>
-                        </div>
-                        <span className="text-[11px] text-slate-600">
-                          +{formatDuration(Math.max(0, altRoute.duration - currentRoute.duration))}
+                        <span className="text-[10px] uppercase tracking-wide font-semibold"
+                          style={{ color: isUsingAltRoute ? currentMode.color : '#64748b' }}>
+                          {isUsingAltRoute ? '✓ Alternativa (selezionata)' : '🔀 Alternativa'}
                         </span>
+                        {!isUsingAltRoute && (
+                          <span className="text-[11px] text-slate-600">
+                            {altRoute.duration > mainRoute.duration
+                              ? `+${formatDuration(altRoute.duration - mainRoute.duration)}`
+                              : `-${formatDuration(mainRoute.duration - altRoute.duration)}`}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-baseline gap-2 mt-0.5">
-                        <span className="text-sm font-bold text-slate-400 tabular-nums">
+                        <span className="text-sm font-bold tabular-nums"
+                          style={{ color: isUsingAltRoute ? currentMode.color : '#94a3b8' }}>
                           {formatDuration(altRoute.duration)}
                         </span>
                         <span className="text-xs text-slate-600">{formatDistance(altRoute.distance)}</span>
+                        {isUsingAltRoute && (
+                          <span className="text-[10px] text-slate-600 ml-auto">tocca per tornare al percorso principale</span>
+                        )}
                       </div>
-                    </div>
+                    </motion.button>
                   )}
 
                   {!currentRoute && !routeLoading && userLocation && (
