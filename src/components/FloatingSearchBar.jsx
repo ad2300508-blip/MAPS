@@ -1,7 +1,48 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Loader } from 'lucide-react';
+import { Search, X, Loader, Mic, MicOff } from 'lucide-react';
 import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
+
+// ─── Voice search hook ────────────────────────────────────────────────────
+function useVoiceSearch(onResult) {
+  const [isListening, setIsListening] = useState(false);
+  const recRef      = useRef(null);
+  const callbackRef = useRef(onResult);
+  useEffect(() => { callbackRef.current = onResult; }, [onResult]);
+
+  const supported = typeof window !== 'undefined' &&
+    !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  const start = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    recRef.current?.abort();
+    const rec = new SR();
+    rec.lang = 'it-IT';
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const text = e.results[0]?.[0]?.transcript?.trim();
+      if (text) callbackRef.current(text);
+    };
+    rec.onstart  = () => setIsListening(true);
+    rec.onend    = () => setIsListening(false);
+    rec.onerror  = () => setIsListening(false);
+    recRef.current = rec;
+    try { rec.start(); } catch { setIsListening(false); }
+    navigator.vibrate?.([20]);
+  }, []);
+
+  const stop = useCallback(() => {
+    recRef.current?.stop();
+    recRef.current = null;
+    setIsListening(false);
+  }, []);
+
+  useEffect(() => () => recRef.current?.abort(), []);
+
+  return { isListening, supported, start, stop };
+}
 
 // Detect "lat, lng" input and return {lat, lng} or null
 // Requires at least one decimal to avoid ambiguity with plain numbers
@@ -99,6 +140,15 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const abortRef    = useRef(null);
   const catTokenRef = useRef(null); // stale-search guard for async Overpass category search
 
+  const handleVoiceResult = useCallback((text) => {
+    setQuery(text);
+    clearTimeout(debounceRef.current);
+    search(text);
+  }, [search]);
+
+  const { isListening, supported: voiceSupported, start: startVoice, stop: stopVoice } =
+    useVoiceSearch(handleVoiceResult);
+
   // Local search through saved/recent when offline
   const offlineMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -175,6 +225,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   }, [userLocation?.[0], userLocation?.[1]]);
 
   const handleQueryChange = (e) => {
+    if (isListening) stopVoice();
     const q = e.target.value;
     setQuery(q);
     clearTimeout(debounceRef.current);
@@ -205,7 +256,10 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
         const elements = await searchNearbyCategory(lat, lng, cat.ov);
         if (catTokenRef.current !== token) return; // a newer search has started
         if (elements) {
-          const pois = elements
+          // Prefer named places; fall back to unnamed only if there are < 3 named results
+          const named = elements.filter((el) => el.tags?.name);
+          const src   = named.length >= 3 ? named : elements;
+          const pois = src
             .map((el) => {
               const lon = el.lon ?? el.center?.lon;
               const elLat = el.lat ?? el.center?.lat;
@@ -237,6 +291,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   };
 
   const handleClose = () => {
+    stopVoice();
     onActiveChange(false);
     setQuery('');
     setResults([]);
@@ -306,15 +361,25 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
         >
           {/* Input row */}
           <div className="flex items-center gap-3 px-4 h-14">
-            <motion.div animate={{ color: isActive ? '#4cc9f0' : '#64748b' }} transition={{ duration: 0.2 }}>
-              {loading ? <Loader size={20} className="animate-spin" /> : <Search size={20} strokeWidth={2} />}
+            <motion.div
+              animate={{ color: isListening ? '#ef4444' : isActive ? '#4cc9f0' : '#64748b' }}
+              transition={{ duration: 0.2 }}
+            >
+              {loading && !isListening
+                ? <Loader size={20} className="animate-spin" />
+                : isListening
+                ? <motion.span animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 0.9 }}>
+                    <Mic size={20} strokeWidth={2} />
+                  </motion.span>
+                : <Search size={20} strokeWidth={2} />
+              }
             </motion.div>
 
             <input
               ref={inputRef}
               type="text"
               enterKeyHint="search"
-              placeholder="Cerca luoghi, indirizzi…"
+              placeholder={isListening ? 'In ascolto…' : 'Cerca luoghi, indirizzi…'}
               value={query}
               onChange={handleQueryChange}
               onFocus={() => onActiveChange(true)}
@@ -328,9 +393,23 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
               className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none font-medium"
             />
 
-            <AnimatePresence>
-              {isActive && (
+            <AnimatePresence mode="wait">
+              {isActive && isListening ? (
                 <motion.button
+                  key="mic-off"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={stopVoice}
+                  className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center focus:outline-none"
+                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)' }}
+                >
+                  <MicOff size={13} className="text-red-400" />
+                </motion.button>
+              ) : isActive && query.trim() ? (
+                <motion.button
+                  key="close"
                   initial={{ opacity: 0, scale: 0.7 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.7 }}
@@ -340,7 +419,19 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                 >
                   <X size={14} className="text-slate-300" />
                 </motion.button>
-              )}
+              ) : isActive && voiceSupported ? (
+                <motion.button
+                  key="mic"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={startVoice}
+                  className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors focus:outline-none"
+                >
+                  <Mic size={14} className="text-slate-400" />
+                </motion.button>
+              ) : null}
             </AnimatePresence>
           </div>
 
@@ -410,26 +501,38 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                       {(homePlace || workPlace) && (
                         <div className="flex gap-2 px-3 pt-2 pb-0.5">
                           {[
-                            { place: homePlace, icon: '🏠', label: 'Casa' },
-                            { place: workPlace, icon: '💼', label: 'Lavoro' },
-                          ].filter(({ place }) => place).map(({ place, icon, label }) => {
+                            { place: homePlace, icon: '🏠', label: 'Casa', key: 'home', setter: setHomePlace },
+                            { place: workPlace, icon: '💼', label: 'Lavoro', key: 'work', setter: setWorkPlace },
+                          ].filter(({ place }) => place).map(({ place, icon, label, key, setter }) => {
                             const dist = userLocation && place.coords
                               ? formatDistance(haversineMeters(userLocation, place.coords))
                               : null;
                             return (
-                              <motion.button
-                                key={label}
-                                whileTap={{ scale: 0.92 }}
-                                onClick={() => { onResultSelect(place); handleClose(); }}
-                                className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl focus:outline-none text-left"
-                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}
-                              >
-                                <span className="text-base leading-none">{icon}</span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold text-slate-300 truncate">{label}</p>
-                                  {dist && <p className="text-[10px] text-slate-500 truncate">{dist}</p>}
-                                </div>
-                              </motion.button>
+                              <div key={label} className="flex-1 flex items-center gap-1 min-w-0">
+                                <motion.div
+                                  whileTap={{ scale: 0.92 }}
+                                  onClick={() => { onResultSelect(place); handleClose(); }}
+                                  className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer min-w-0"
+                                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}
+                                >
+                                  <span className="text-base leading-none">{icon}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-slate-300 truncate">{label}</p>
+                                    {dist && <p className="text-[10px] text-slate-500 truncate">{dist}</p>}
+                                  </div>
+                                </motion.div>
+                                <button
+                                  onClick={() => {
+                                    try { localStorage.removeItem(`via-${key}`); } catch {}
+                                    setter(null);
+                                    navigator.vibrate?.([12]);
+                                  }}
+                                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center focus:outline-none"
+                                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                                >
+                                  <X size={9} className="text-slate-600" />
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
