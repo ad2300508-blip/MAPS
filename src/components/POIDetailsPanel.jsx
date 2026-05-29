@@ -119,6 +119,7 @@ export default function POIDetailsPanel({
   const isMobile    = useIsMobile();
   const dragControls = useDragControls();
   const [activeTab,  setActiveTab]  = useState('directions');
+  const [showAllSteps, setShowAllSteps] = useState(false);
   const [favorites,  setFavorites]  = useState(loadFavorites);
   const isFav = favorites.some((f) => f.name === destination?.name && f.coords?.join() === destination?.coords?.join());
 
@@ -138,7 +139,7 @@ export default function POIDetailsPanel({
   const currentRoute = routesByProfile?.[profileMap[selectedModeId]];
 
   useEffect(() => {
-    if (destination) setActiveTab('directions');
+    if (destination) { setActiveTab('directions'); setShowAllSteps(false); }
   }, [destination?.name]);
 
   const variants = isMobile
@@ -326,9 +327,18 @@ export default function POIDetailsPanel({
                       <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
                         Indicazioni passo-passo
                       </p>
-                      {steps.map((step, i) => (
+                      {(showAllSteps ? steps : steps.slice(0, 8)).map((step, i) => (
                         <StepRow key={i} step={step} index={i} color={currentMode.color} />
                       ))}
+                      {steps.length > 8 && (
+                        <button
+                          onClick={() => setShowAllSteps((v) => !v)}
+                          className="w-full text-xs text-center py-2 mt-1 rounded-xl focus:outline-none"
+                          style={{ color: currentMode.color, background: `${currentMode.color}0c` }}
+                        >
+                          {showAllSteps ? 'Mostra meno' : `Mostra tutte le ${steps.length} indicazioni`}
+                        </button>
+                      )}
                     </div>
                   )}
                 </>
