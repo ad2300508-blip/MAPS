@@ -3,6 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader } from 'lucide-react';
 import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
 
+// Detect "lat, lng" input and return {lat, lng} or null
+// Requires at least one decimal to avoid ambiguity with plain numbers
+const COORD_RE = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+function parseCoords(q) {
+  const m = q.match(COORD_RE);
+  if (!m) return null;
+  if (!m[1].includes('.') && !m[2].includes('.')) return null; // both integers — too ambiguous
+  const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
 const CATEGORIES = [
   { label: 'Ristoranti', icon: '🍽', q: 'ristorante' },
   { label: 'Caffè',      icon: '☕', q: 'caffè'       },
@@ -79,6 +91,21 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const search = useCallback(async (q) => {
     abortRef.current?.abort();
     if (!q.trim()) { setResults([]); setLoading(false); return; }
+
+    // If the query looks like "lat, lng" coordinates, bypass Nominatim
+    const coords = parseCoords(q);
+    if (coords) {
+      setResults([{
+        lat: String(coords.lat), lon: String(coords.lng),
+        display_name: `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`,
+        name: 'Coordinate',
+        class: 'place', type: 'coordinates',
+        _isCoord: true,
+      }]);
+      setLoading(false);
+      return;
+    }
+
     if (!isOnline) { setResults([]); setLoading(false); return; }
 
     abortRef.current = new AbortController();
@@ -164,6 +191,9 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   };
 
   const parseResult = (r) => {
+    if (r._isCoord) {
+      return { ...r, nameShort: r.display_name, address: 'Coordinate GPS', emoji: '📍' };
+    }
     const parts     = (r.display_name ?? '').split(', ').filter(Boolean);
     const nameShort = parts.length > 0 ? parts.slice(0, 2).join(', ') : (r.name ?? 'Luogo');
     const address   = parts.length > 2 ? parts.slice(2, 5).join(', ') : '';

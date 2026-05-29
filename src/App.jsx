@@ -37,9 +37,10 @@ export default function App() {
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
   const [isMuted,        setIsMuted]        = useState(false);
   const [arrivedStats, setArrivedStats] = useState(null); // { secs, meters }
-  const mapApiRef    = useRef(null);
-  const navDestRef   = useRef(null);   // keeps destination marker visible during navigation
-  const navStartRef  = useRef(null);   // navigation start timestamp (ms)
+  const mapApiRef      = useRef(null);
+  const navDestRef     = useRef(null);   // keeps destination marker visible during navigation
+  const navStartRef    = useRef(null);   // navigation start timestamp (ms)
+  const navRouteRef    = useRef(null);   // route snapshot at navigation start (for arrival stats)
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
   const { location: userLocation, heading: gpsHeading, speed, accuracy, error: gpsError } = useGeolocation();
@@ -204,7 +205,8 @@ export default function App() {
     setArrivedStats(null);
     prevOffRouteRef.current  = false;  // reset off-route hysteresis for new navigation session
     prevRouteKeyRef.current  = null;   // reset so first route load isn't treated as a reroute
-    navStartRef.current      = Date.now();
+    navStartRef.current   = Date.now();
+    navRouteRef.current   = currentRoute;   // snapshot for arrival stats
     setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
     // Announce destination + first turn
@@ -235,7 +237,7 @@ export default function App() {
       const elapsedSecs = navStartRef.current
         ? Math.round((Date.now() - navStartRef.current) / 1000)
         : null;
-      const routeMeters = currentRoute?.distance ?? null;
+      const routeMeters = navRouteRef.current?.distance ?? null;
       setArrivedStats({ secs: elapsedSecs, meters: routeMeters });
       setHasArrived(true);
       speak('Sei arrivato a destinazione');
@@ -247,7 +249,7 @@ export default function App() {
         pitch: is3DMode ? 52 : 0, bearing: 0, duration: 1200,
       });
     }
-  }, [is3DMode, speak, cancel, currentRoute]);
+  }, [is3DMode, speak, cancel]);
 
   // ── Auto-advance steps ──────────────────────────────────────────────────
   useEffect(() => {

@@ -248,11 +248,12 @@ export default function MapView({
       ? nearbyPOIs.filter(p => !AUTOMOTIVE_TYPES.has(p.type))
       : nearbyPOIs;
     if (!userLocation || !filtered.length) return filtered.slice(0, 10);
+    const cap = (selectedModeId === 'walk' || selectedModeId === 'bike') ? 6 : 10;
     return [...filtered]
       .map(p => ({ ...p, _d: haversineMeters(userLocation, p.coords) }))
       .filter(p => p._d < 2000)                     // cap to 2 km radius
       .sort((a, b) => a._d - b._d)
-      .slice(0, 10);
+      .slice(0, cap);
   }, [nearbyPOIs, userLocation, selectedModeId]);
 
   // Interpolate OSRM geometry
@@ -528,9 +529,11 @@ export default function MapView({
           const loc = nextStep.maneuver?.location;
           if (!loc) return null;
           const distToTurn = userLocation ? haversineMeters(userLocation, loc) : null;
+          // Fade out when very close (< 40m) to avoid overlapping with the user dot at the turn
+          const opacity = distToTurn != null && distToTurn < 40 ? 0 : 1;
           return (
             <Marker longitude={loc[0]} latitude={loc[1]} anchor="bottom">
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity, transition: 'opacity 0.8s ease' }}>
                 <TurnMarker
                   type={nextStep.maneuver?.type}
                   modifier={nextStep.maneuver?.modifier}
