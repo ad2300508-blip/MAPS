@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader } from 'lucide-react';
 import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
@@ -55,6 +55,18 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const inputRef  = useRef(null);
   const debounceRef = useRef(null);
   const abortRef  = useRef(null);
+
+  // Local search through saved/recent when offline
+  const offlineMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || isOnline) return [];
+    const match = (item) =>
+      item.name?.toLowerCase().includes(q) || item.address?.toLowerCase().includes(q);
+    const favMatches  = favorites.filter(match);
+    const favNames    = new Set(favMatches.map((f) => f.name));
+    const recMatches  = recent.filter((r) => match(r) && !favNames.has(r.name));
+    return [...favMatches, ...recMatches].slice(0, 6);
+  }, [query, isOnline, favorites, recent]);
 
   useEffect(() => {
     if (isActive) {
@@ -250,9 +262,30 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                         );
                       })}
                     </>
+                  ) : query.trim() && !loading && offlineMatches.length > 0 ? (
+                    <>
+                      <p className="px-4 pt-2 pb-1 text-xs font-semibold text-amber-600/70 uppercase tracking-widest">
+                        📡 Offline — risultati salvati
+                      </p>
+                      {offlineMatches.map((item, i) => {
+                        const dist = userLocation && item.coords
+                          ? formatDistance(haversineMeters(userLocation, item.coords))
+                          : null;
+                        return (
+                          <ResultRow
+                            key={i}
+                            emoji={item.emoji ?? '📍'}
+                            primary={item.name}
+                            secondary={item.address}
+                            dist={dist}
+                            onClick={() => { onResultSelect(item); handleClose(); }}
+                          />
+                        );
+                      })}
+                    </>
                   ) : query.trim() && !loading ? (
                     <p className="px-4 py-6 text-sm text-center" style={{ color: !isOnline ? '#fbbf24' : '#475569' }}>
-                      {!isOnline ? '📡 Offline — ricerca non disponibile' : `Nessun risultato per "${query}"`}
+                      {!isOnline ? '📡 Offline — nessun risultato salvato' : `Nessun risultato per "${query}"`}
                     </p>
                   ) : !query.trim() ? (
                     <>
