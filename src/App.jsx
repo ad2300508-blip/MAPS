@@ -35,6 +35,7 @@ export default function App() {
   const [hasArrived,     setHasArrived]     = useState(false);
   const [mapCentered,    setMapCentered]    = useState(true);
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
+  const [isMuted,        setIsMuted]        = useState(false);
   const mapApiRef    = useRef(null);
   const navDestRef   = useRef(null);   // keeps destination marker visible during navigation
 
@@ -44,7 +45,10 @@ export default function App() {
   const userHeading = gpsHeading ?? compassHeading;
 
   // ── Voice ───────────────────────────────────────────────────────────────
-  const { speak, cancel } = useSpeech();
+  const { speak: _speak, cancel } = useSpeech();
+  const speak = useCallback((text, opts) => {
+    if (!isMuted) _speak(text, opts);
+  }, [isMuted, _speak]);
 
   // ── Keep screen on during navigation ────────────────────────────────────
   useWakeLock(isNavigating);
@@ -533,6 +537,8 @@ export default function App() {
                 userAccuracy={accuracy}
                 destName={navDestName}
                 onRepeat={speak}
+                isMuted={isMuted}
+                onToggleMute={() => setIsMuted((m) => !m)}
                 onStop={() => handleStopNavigation(false)}
               />
             </div>

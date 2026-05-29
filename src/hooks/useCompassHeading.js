@@ -1,19 +1,36 @@
 import { useState, useEffect } from 'react';
 
+// Shortest angular difference from `from` to `to` in degrees
+function angleDelta(from, to) {
+  let d = to - from;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
+}
+
 export function useCompassHeading() {
   const [heading, setHeading] = useState(null);
 
   useEffect(() => {
+    let smoothed = null;
+    const ALPHA = 0.15;  // heavy smoothing — device orientation fires at ~60 Hz
+
     const handle = (e) => {
-      // iOS: webkitCompassHeading is already 0°=North
+      let raw;
       if (e.webkitCompassHeading != null) {
-        setHeading(e.webkitCompassHeading);
+        raw = e.webkitCompassHeading;
+      } else if (e.absolute && e.alpha != null) {
+        raw = (360 - e.alpha + 360) % 360;
+      } else {
         return;
       }
-      // Android absolute: alpha rotates counter-clockwise from North
-      if (e.absolute && e.alpha != null) {
-        setHeading((360 - e.alpha + 360) % 360);
+
+      if (smoothed == null) {
+        smoothed = raw;
+      } else {
+        smoothed = (smoothed + ALPHA * angleDelta(smoothed, raw) + 360) % 360;
       }
+      setHeading(Math.round(smoothed));
     };
 
     window.addEventListener('deviceorientationabsolute', handle, true);

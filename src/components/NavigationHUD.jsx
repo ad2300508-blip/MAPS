@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, AlertTriangle, Volume2 } from 'lucide-react';
+import { X, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
 import {
   formatDistance,
   formatDuration,
@@ -26,6 +26,8 @@ export default function NavigationHUD({
   isOffRoute,
   onStop,
   onRepeat,
+  isMuted,
+  onToggleMute,
   userLocation,
   userAccuracy,
   destName,
@@ -165,13 +167,33 @@ export default function NavigationHUD({
             )}
           </div>
 
-          <button
-            onClick={onStop}
-            className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center focus:outline-none"
-            style={{ background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.3)' }}
-          >
-            <X size={20} className="text-red-400" />
-          </button>
+          <div className="flex flex-col gap-1.5 flex-shrink-0">
+            {/* Mute toggle */}
+            {onToggleMute && (
+              <button
+                onClick={onToggleMute}
+                className="w-11 h-[42px] rounded-2xl flex items-center justify-center focus:outline-none"
+                style={
+                  isMuted
+                    ? { background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.25)' }
+                    : { background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.1)' }
+                }
+              >
+                {isMuted
+                  ? <VolumeX size={17} className="text-red-400" />
+                  : <Volume2 size={17} className="text-slate-400" />
+                }
+              </button>
+            )}
+            {/* Stop navigation */}
+            <button
+              onClick={onStop}
+              className="w-11 h-[42px] rounded-2xl flex items-center justify-center focus:outline-none"
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.3)' }}
+            >
+              <X size={20} className="text-red-400" />
+            </button>
+          </div>
         </div>
 
         {/* Route progress bar */}
