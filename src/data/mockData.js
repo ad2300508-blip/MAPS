@@ -1,5 +1,7 @@
 // ─── Opening hours parser (subset of OSM format) ────────────────────────────
-// Returns true = open, false = closed, null = cannot determine
+// Returns true = open, false = closed, null = cannot determine.
+// Handles: 24/7, day ranges (Mo-Fr), comma lists (Mo,We), multiple time
+// ranges per day (09:00-12:00,14:00-18:00), and overnight ranges (22:00-02:00).
 const _DAY = { mo: 0, tu: 1, we: 2, th: 3, fr: 4, sa: 5, su: 6 };
 export function parseOpenNow(hoursStr) {
   if (!hoursStr) return null;
@@ -8,18 +10,15 @@ export function parseOpenNow(hoursStr) {
 
   const now    = new Date();
   const dayIdx = (now.getDay() + 6) % 7;  // Mon=0, Sun=6
-  const mins   = now.getHours() * 60 + now.getMinutes();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
 
   for (const rule of h.split(';').map((r) => r.trim()).filter(Boolean)) {
-    // Match optional day spec + mandatory time range
-    const m = rule.match(/^([a-z]{2}(?:[,\-][a-z]{2})*)?\s*(\d{1,2}:\d{2})-(\d{1,2}:\d{2})(?::00)?$/);
-    if (!m) continue;
-    const [, dayPart, t1, t2] = m;
-    const [sh, sm] = t1.split(':').map(Number);
-    const [eh, em] = t2.split(':').map(Number);
-    const sMin = sh * 60 + sm;
-    const eMin = eh * 60 + em;
+    // Split "Mo-Fr 09:00-12:00,14:00-18:00" into day part + time part
+    const dayMatch = rule.match(/^([a-z]{2}(?:[,\-][a-z]{2})*)\s+(.+)$/);
+    const dayPart  = dayMatch ? dayMatch[1] : null;
+    const timePart = dayMatch ? dayMatch[2] : rule;
 
+    // Evaluate day spec
     let dayOk = !dayPart;
     if (dayPart) {
       for (const seg of dayPart.split(',')) {
@@ -27,15 +26,23 @@ export function parseOpenNow(hoursStr) {
         if (parts.length === 2) {
           const d1 = _DAY[parts[0]], d2 = _DAY[parts[1]];
           if (d1 != null && d2 != null && dayIdx >= d1 && dayIdx <= d2) { dayOk = true; break; }
-        } else {
-          if (_DAY[seg] === dayIdx) { dayOk = true; break; }
-        }
+        } else if (_DAY[seg] === dayIdx) { dayOk = true; break; }
       }
     }
     if (!dayOk) continue;
 
-    // Handle overnight (e.g. 22:00-02:00)
-    if (eMin < sMin ? (mins >= sMin || mins < eMin) : (mins >= sMin && mins < eMin)) return true;
+    // Extract all hh:mm-hh:mm ranges (handles multiple per day separated by comma)
+    const ranges = timePart.match(/\d{1,2}:\d{2}-\d{1,2}:\d{2}/g) ?? [];
+    for (const tr of ranges) {
+      const [t1, t2] = tr.split('-');
+      const sMin = parseInt(t1) * 60 + parseInt(t1.split(':')[1]);
+      const eMin = parseInt(t2) * 60 + parseInt(t2.split(':')[1]);
+      if (eMin < sMin
+        ? (nowMin >= sMin || nowMin < eMin)   // overnight range
+        : (nowMin >= sMin && nowMin < eMin)) {
+        return true;
+      }
+    }
   }
   return false;
 }
