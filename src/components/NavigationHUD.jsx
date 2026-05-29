@@ -321,6 +321,20 @@ export default function NavigationHUD({
             >
               {formatDistance(distToTurn)}
             </p>
+            {/* Progress through current road segment */}
+            {step.distance > 50 && (
+              <div className="my-1" style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(100, Math.max(0, (1 - distToTurn / step.distance) * 100))}%`,
+                    background: turnColor,
+                    borderRadius: 2,
+                    transition: 'width 1s ease',
+                  }}
+                />
+              </div>
+            )}
             {lanes && <LaneGuide lanes={lanes} modeColor={turnColor} />}
             <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
               {instruction}

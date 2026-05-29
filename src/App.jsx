@@ -249,6 +249,7 @@ export default function App() {
     setArrivedStats(null);
     prevOffRouteRef.current  = false;  // reset off-route hysteresis for new navigation session
     prevRouteKeyRef.current  = null;   // reset so first route load isn't treated as a reroute
+    lastPeriodicRef.current  = Date.now();  // suppress first-10-min announcement immediately after start
     navStartRef.current   = Date.now();
     navRouteRef.current   = currentRoute;   // snapshot for arrival stats
     navModeRef.current    = selectedModeId; // snapshot mode for CO₂ calculation
@@ -338,6 +339,7 @@ export default function App() {
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
   const vibrate = useCallback((pattern) => { navigator.vibrate?.(pattern); }, []);
+  const lastPeriodicRef   = useRef(0);
   const spokenAt500Ref    = useRef(false);
   const spokenAt200Ref    = useRef(false);
   const spokenAt60Ref     = useRef(false);
@@ -391,6 +393,16 @@ export default function App() {
       spokenAt500Ref.current = false;
       spokenAt200Ref.current = false;
       spokenAt60Ref.current  = false;
+    }
+
+    // Periodic "still X km away" reminder every 10 min — fires only when no turn is imminent
+    if (dist > Math.max(warnDist, 300)) {
+      const remainingMeters = steps.slice(currentStepIdx).reduce((s, x) => s + (x.distance ?? 0), 0);
+      const now = Date.now();
+      if (remainingMeters > 5000 && now - lastPeriodicRef.current >= 10 * 60 * 1000) {
+        lastPeriodicRef.current = now;
+        speak(`Ancora ${formatDistanceVoice(remainingMeters)}`);
+      }
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx, speak, vibrate]);
 
