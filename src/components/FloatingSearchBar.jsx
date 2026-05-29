@@ -44,13 +44,38 @@ function useVoiceSearch(onResult) {
   return { isListening, supported, start, stop };
 }
 
-// Detect "lat, lng" input and return {lat, lng} or null
-// Requires at least one decimal to avoid ambiguity with plain numbers
-const COORD_RE = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+// Detect various coordinate formats and return {lat, lng} or null
+
+// Decimal degrees: "41.9028, 12.4964" or "41.9028N 12.4964E"
+const COORD_RE   = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+const COORD_NSEW = /^\s*([\d.]+)\s*°?\s*([NS])\s*[,\s]\s*([\d.]+)\s*°?\s*([EW])\s*$/i;
+// DMS: "41°54'10"N 12°29'47"E" or "41° 54' 10" N, 12° 29' 47" E"
+const DMS_RE = /(\d{1,3})\s*°\s*(\d{1,2})\s*'\s*([\d.]+)\s*"?\s*([NS])\s*[,\s]+\s*(\d{1,3})\s*°\s*(\d{1,2})\s*'\s*([\d.]+)\s*"?\s*([EW])/i;
+
+function parseDMS(deg, min, sec, dir) {
+  const val = parseFloat(deg) + parseFloat(min) / 60 + parseFloat(sec) / 3600;
+  return dir.toUpperCase() === 'S' || dir.toUpperCase() === 'W' ? -val : val;
+}
+
 function parseCoords(q) {
+  // DMS format
+  const dms = q.match(DMS_RE);
+  if (dms) {
+    const lat = parseDMS(dms[1], dms[2], dms[3], dms[4]);
+    const lng = parseDMS(dms[5], dms[6], dms[7], dms[8]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+  }
+  // Decimal with N/S/E/W
+  const nsew = q.match(COORD_NSEW);
+  if (nsew) {
+    const lat = parseFloat(nsew[1]) * (nsew[2].toUpperCase() === 'S' ? -1 : 1);
+    const lng = parseFloat(nsew[3]) * (nsew[4].toUpperCase() === 'W' ? -1 : 1);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+  }
+  // Plain decimal: "41.9028, 12.4964"
   const m = q.match(COORD_RE);
   if (!m) return null;
-  if (!m[1].includes('.') && !m[2].includes('.')) return null; // both integers — too ambiguous
+  if (!m[1].includes('.') && !m[2].includes('.')) return null;
   const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
   return { lat, lng };
