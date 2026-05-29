@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Volume2 } from 'lucide-react';
 import {
   formatDistance,
   formatDuration,
@@ -25,6 +25,7 @@ export default function NavigationHUD({
   speed,
   isOffRoute,
   onStop,
+  onRepeat,
   userLocation,
   userAccuracy,
   destName,
@@ -124,17 +125,28 @@ export default function NavigationHUD({
       >
         {/* Turn instruction row */}
         <div className="flex items-center gap-4 px-5 pt-5 pb-4">
-          <motion.div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
-            animate={turnUrgent ? { scale: [1, 1.08, 1] } : {}}
-            transition={{ repeat: Infinity, duration: 0.8 }}
-            style={{
-              background: `${turnColor}18`,
-              border: `1.5px solid ${turnColor}55`,
-            }}
-          >
-            {icon}
-          </motion.div>
+          <div className="flex flex-col items-center gap-1.5">
+            <motion.div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
+              animate={turnUrgent ? { scale: [1, 1.08, 1] } : {}}
+              transition={{ repeat: Infinity, duration: 0.8 }}
+              style={{
+                background: `${turnColor}18`,
+                border: `1.5px solid ${turnColor}55`,
+              }}
+            >
+              {icon}
+            </motion.div>
+            {onRepeat && (
+              <button
+                onClick={() => onRepeat(instruction)}
+                className="w-8 h-6 rounded-lg flex items-center justify-center focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <Volume2 size={11} className="text-slate-500" />
+              </button>
+            )}
+          </div>
 
           <div className="flex-1 min-w-0">
             <p

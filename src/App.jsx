@@ -237,13 +237,14 @@ export default function App() {
     if (currentStepIdx >= steps.length - 1) return;
     const nextLoc = steps[currentStepIdx + 1]?.maneuver?.location;
     if (!nextLoc) return;
-    // Speed-adaptive threshold: at least 50m, but 3s of travel at current speed.
-    // This ensures the step advances early enough at highway speeds (e.g. ~85m at 100 km/h).
-    const advanceDist = Math.max(50, (speed ?? 0) * 3);
+    // Speed-adaptive threshold. Walking/cycling turns are close together so need a
+    // tight 15m floor; driving/moto need 50m to advance early enough at speed.
+    const isWalkBike = selectedModeId === 'walk' || selectedModeId === 'bike';
+    const advanceDist = Math.max(isWalkBike ? 15 : 50, (speed ?? 0) * 3);
     if (haversineMeters(userLocation, nextLoc) < advanceDist) {
       setCurrentStepIdx((i) => i + 1);
     }
-  }, [userLocation, isNavigating, currentRoute, currentStepIdx, speed]);
+  }, [userLocation, isNavigating, currentRoute, currentStepIdx, speed, selectedModeId]);
 
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
@@ -531,6 +532,7 @@ export default function App() {
                 userLocation={userLocation}
                 userAccuracy={accuracy}
                 destName={navDestName}
+                onRepeat={speak}
                 onStop={() => handleStopNavigation(false)}
               />
             </div>

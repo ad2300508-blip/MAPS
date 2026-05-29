@@ -9,6 +9,7 @@ import {
   formatCost,
   maneuverToItalian,
   maneuverIcon,
+  parseOpenNow,
 } from '../data/mockData';
 
 // ─── Favorites storage ────────────────────────────────────────────────────
@@ -386,12 +387,29 @@ export default function POIDetailsPanel({
                   )}
 
                   {/* Opening hours */}
-                  {destination.hours && (
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-slate-600 text-sm">🕐</span>
-                      <p className="text-xs text-slate-400 leading-relaxed">{destination.hours}</p>
-                    </div>
-                  )}
+                  {destination.hours && (() => {
+                    const openNow = parseOpenNow(destination.hours);
+                    return (
+                      <div className="flex items-start gap-2.5">
+                        <span className="text-slate-600 text-sm">🕐</span>
+                        <div className="flex-1 min-w-0">
+                          {openNow !== null && (
+                            <span
+                              className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1"
+                              style={
+                                openNow
+                                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }
+                                  : { background: 'rgba(239,68,68,0.12)',  color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }
+                              }
+                            >
+                              {openNow ? 'Aperto ora' : 'Chiuso'}
+                            </span>
+                          )}
+                          <p className="text-xs text-slate-400 leading-relaxed">{destination.hours}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Phone */}
                   {destination.phone && (

@@ -1,3 +1,45 @@
+// ─── Opening hours parser (subset of OSM format) ────────────────────────────
+// Returns true = open, false = closed, null = cannot determine
+const _DAY = { mo: 0, tu: 1, we: 2, th: 3, fr: 4, sa: 5, su: 6 };
+export function parseOpenNow(hoursStr) {
+  if (!hoursStr) return null;
+  const h = hoursStr.trim().toLowerCase();
+  if (h === '24/7') return true;
+
+  const now    = new Date();
+  const dayIdx = (now.getDay() + 6) % 7;  // Mon=0, Sun=6
+  const mins   = now.getHours() * 60 + now.getMinutes();
+
+  for (const rule of h.split(';').map((r) => r.trim()).filter(Boolean)) {
+    // Match optional day spec + mandatory time range
+    const m = rule.match(/^([a-z]{2}(?:[,\-][a-z]{2})*)?\s*(\d{1,2}:\d{2})-(\d{1,2}:\d{2})(?::00)?$/);
+    if (!m) continue;
+    const [, dayPart, t1, t2] = m;
+    const [sh, sm] = t1.split(':').map(Number);
+    const [eh, em] = t2.split(':').map(Number);
+    const sMin = sh * 60 + sm;
+    const eMin = eh * 60 + em;
+
+    let dayOk = !dayPart;
+    if (dayPart) {
+      for (const seg of dayPart.split(',')) {
+        const parts = seg.split('-');
+        if (parts.length === 2) {
+          const d1 = _DAY[parts[0]], d2 = _DAY[parts[1]];
+          if (d1 != null && d2 != null && dayIdx >= d1 && dayIdx <= d2) { dayOk = true; break; }
+        } else {
+          if (_DAY[seg] === dayIdx) { dayOk = true; break; }
+        }
+      }
+    }
+    if (!dayOk) continue;
+
+    // Handle overnight (e.g. 22:00-02:00)
+    if (eMin < sMin ? (mins >= sMin || mins < eMin) : (mins >= sMin && mins < eMin)) return true;
+  }
+  return false;
+}
+
 // Transport mode config — routes come from OSRM
 export const TRANSPORT_MODES = [
   {
