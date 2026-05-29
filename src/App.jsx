@@ -373,6 +373,19 @@ export default function App() {
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
   const vibrate = useCallback((pattern) => { navigator.vibrate?.(pattern); }, []);
+
+  // Directional haptic: asymmetric patterns encode turn direction
+  // left:  short→long  right: long→short  uturn: triple  straight: single
+  function turnVibrate(modifier, urgency = 'standard') {
+    const b = urgency === 'urgent' ? 80 : urgency === 'early' ? 32 : 56;
+    const mod = modifier ?? '';
+    if (mod.includes('uturn'))       return [b, 40, b, 40, b];
+    if (mod === 'sharp left')        return [Math.round(b * 1.4), 35, b];
+    if (mod === 'sharp right')       return [b, 35, Math.round(b * 1.4)];
+    if (mod.includes('left'))        return [25, 48, b];
+    if (mod.includes('right'))       return [b, 48, 25];
+    return [b];
+  }
   const lastPeriodicRef   = useRef(0);
   const spokenAt500Ref    = useRef(false);
   const spokenAt200Ref    = useRef(false);
@@ -405,16 +418,17 @@ export default function App() {
     const warnDist   = Math.max(200, speedMs * 10); // ~10 s advance
     const urgentDist = Math.max(60,  speedMs * 4);  // ~4 s advance
 
+    const nextModifier = nextStep.maneuver?.modifier ?? '';
     // Three-tier system: early (highway only, >80 km/h), standard, urgent
     if (kmh > 80 && dist < earlyDist && dist >= warnDist && !spokenAt500Ref.current) {
       spokenAt500Ref.current = true;
       speak(`Attenzione. Tra ${formatDistanceVoice(dist)}, ${instr}`);
-      vibrate([40]);
+      vibrate(turnVibrate(nextModifier, 'early'));
     } else if (dist < warnDist && dist >= urgentDist && !spokenAt200Ref.current) {
       spokenAt200Ref.current = true;
       spokenAt60Ref.current  = false;
       speak(`Tra ${formatDistanceVoice(dist)}, ${instr}`);
-      vibrate([60]);
+      vibrate(turnVibrate(nextModifier, 'standard'));
     } else if (dist < urgentDist && !spokenAt60Ref.current) {
       spokenAt60Ref.current  = true;
       // Short form at last moment — no street name, just the action
@@ -422,7 +436,7 @@ export default function App() {
         nextStep.maneuver?.type, nextStep.maneuver?.modifier, nextStep.maneuver?.exit,
       );
       speak(shortInstr, { urgent: true });
-      vibrate([80, 60, 80]);
+      vibrate(turnVibrate(nextModifier, 'urgent'));
     } else if (dist >= earlyDist) {
       spokenAt500Ref.current = false;
       spokenAt200Ref.current = false;
