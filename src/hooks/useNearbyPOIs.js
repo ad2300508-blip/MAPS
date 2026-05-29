@@ -42,6 +42,21 @@ async function fetchOverpass(query) {
   return null;
 }
 
+const SESSION_KEY = 'via-poi-cache';
+
+function loadCached(key) {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const { k, pois } = JSON.parse(raw);
+    return k === key ? pois : null;
+  } catch { return null; }
+}
+
+function saveCache(key, pois) {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ k: key, pois })); } catch {}
+}
+
 export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
   const [pois, setPOIs] = useState([]);
   const keyRef = useRef(null);
@@ -51,6 +66,10 @@ export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
     const key = `${grid(location[0])},${grid(location[1])}`;
     if (key === keyRef.current) return;
     keyRef.current = key;
+
+    // Serve from session cache instantly (survives page reloads within the session)
+    const cached = loadCached(key);
+    if (cached) { setPOIs(cached); return; }
 
     const [lng, lat] = location;
     const query = buildQuery(lat, lng, radius);
@@ -84,6 +103,7 @@ export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
           };
         })
         .filter(Boolean); // remove null entries (ways without center)
+      saveCache(key, places);
       setPOIs(places);
     });
 

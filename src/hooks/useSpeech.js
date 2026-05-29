@@ -12,7 +12,19 @@ export function useSpeech() {
     refresh();
     // Android WebView loads voices asynchronously — must listen for voiceschanged
     window.speechSynthesis.addEventListener('voiceschanged', refresh);
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', refresh);
+
+    // Android Chrome pauses synthesis when the app goes to background.
+    // On resume, force a cancel so the next speak() starts cleanly.
+    const onResume = () => {
+      if (document.visibilityState === 'visible') {
+        window.speechSynthesis.cancel();
+      }
+    };
+    document.addEventListener('visibilitychange', onResume);
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', refresh);
+      document.removeEventListener('visibilitychange', onResume);
+    };
   }, []);
 
   const speak = useCallback((text, { rate = 1.05, urgent = false } = {}) => {

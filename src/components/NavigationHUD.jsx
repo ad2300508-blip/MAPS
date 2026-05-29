@@ -160,11 +160,18 @@ export default function NavigationHUD({
             <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
               {instruction}
             </p>
-            {destName && (
-              <p className="text-[10px] text-slate-600 mt-1 truncate">
-                → {destName}
-              </p>
-            )}
+            <div className="flex items-center gap-1.5 mt-1">
+              {step.name && (
+                <p className="text-[10px] text-slate-600 truncate flex-1">
+                  📍 {step.name}
+                </p>
+              )}
+              {destName && (
+                <p className="text-[10px] flex-shrink-0" style={{ color: '#2d3748' }}>
+                  → {destName}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5 flex-shrink-0">
