@@ -227,6 +227,42 @@ export function maneuverToItalian(type, modifier, name, exit) {
   }
 }
 
+// Short (urgent) Italian instruction — no street name, just the action
+export function maneuverToItalianShort(type, modifier, exit) {
+  switch (type) {
+    case 'arrive':  return 'Destinazione';
+    case 'turn':
+      if (modifier === 'left')         return 'Svolta a sinistra';
+      if (modifier === 'right')        return 'Svolta a destra';
+      if (modifier === 'sharp left')   return 'Svolta netta a sinistra';
+      if (modifier === 'sharp right')  return 'Svolta netta a destra';
+      if (modifier === 'slight left')  return 'Tieni la sinistra';
+      if (modifier === 'slight right') return 'Tieni la destra';
+      if (modifier === 'uturn')        return 'Inversione di marcia';
+      return 'Svolta';
+    case 'roundabout':
+    case 'rotary': {
+      if (exit != null && exit > 0) {
+        const ords = ['prima', 'seconda', 'terza', 'quarta', 'quinta', 'sesta'];
+        return `Rotonda, ${ords[exit - 1] ?? exit + '°'} uscita`;
+      }
+      return 'Rotonda';
+    }
+    case 'exit roundabout':
+    case 'exit rotary':  return 'Esci dalla rotonda';
+    case 'fork':
+      if (modifier?.includes('left'))  return 'Tieni la sinistra';
+      if (modifier?.includes('right')) return 'Tieni la destra';
+      return 'Dritto';
+    case 'on ramp':   return 'Prendi la rampa';
+    case 'off ramp':  return modifier?.includes('left') ? 'Esci a sinistra' : 'Esci a destra';
+    case 'end of road':
+      return modifier?.includes('left') ? 'Fine strada, sinistra' : 'Fine strada, destra';
+    case 'merge': return 'Immettiti';
+    default:      return 'Continua';
+  }
+}
+
 // Maneuver type → direction icon
 export function maneuverIcon(type, modifier) {
   if (type === 'arrive')                return '🏁';

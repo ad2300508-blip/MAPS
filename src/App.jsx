@@ -12,7 +12,7 @@ import { useCompassHeading } from './hooks/useCompassHeading';
 import { useOSRM } from './hooks/useOSRM';
 import { useSpeech } from './hooks/useSpeech';
 import { useWakeLock } from './hooks/useWakeLock';
-import { getModeById, haversineMeters, maneuverToItalian, formatDistance, formatDistanceVoice } from './data/mockData';
+import { getModeById, haversineMeters, maneuverToItalian, maneuverToItalianShort, formatDistance, formatDistanceVoice } from './data/mockData';
 
 export default function App() {
   const [destination,    setDestination]    = useState(null);   // {name, address, coords, emoji}
@@ -319,7 +319,11 @@ export default function App() {
       vibrate([60]);
     } else if (dist < urgentDist && !spokenAt60Ref.current) {
       spokenAt60Ref.current  = true;
-      speak(instr, { urgent: true });
+      // Short form at last moment — no street name, just the action
+      const shortInstr = maneuverToItalianShort(
+        nextStep.maneuver?.type, nextStep.maneuver?.modifier, nextStep.maneuver?.exit,
+      );
+      speak(shortInstr, { urgent: true });
       vibrate([80, 60, 80]);
     } else if (dist >= earlyDist) {
       spokenAt500Ref.current = false;

@@ -76,10 +76,17 @@ export default function NavigationHUD({
 
   if (!route) return null;
 
-  const steps     = route.legs?.[0]?.steps ?? [];
-  const step      = steps[currentStepIdx] ?? steps[steps.length - 1] ?? {};
-  const nextStep  = steps[currentStepIdx + 1];
-  const next2Step = steps[currentStepIdx + 2];
+  // Steps that are navigation noise — no real action for the driver
+  const FILLER_TYPES = new Set(['depart', 'continue', 'new name', 'notification']);
+
+  const steps    = route.legs?.[0]?.steps ?? [];
+  const step     = steps[currentStepIdx] ?? steps[steps.length - 1] ?? {};
+  const nextStep = steps[currentStepIdx + 1];
+  // Skip filler steps to find the next *meaningful* maneuver
+  let next2Step = null;
+  for (let i = currentStepIdx + 2; i < steps.length; i++) {
+    if (!FILLER_TYPES.has(steps[i].maneuver?.type)) { next2Step = steps[i]; break; }
+  }
 
   // Show the UPCOMING maneuver so the user knows what to do next.
   // Fall back to the current step only on the final arrive step (no nextStep).
@@ -123,13 +130,14 @@ export default function NavigationHUD({
   const kmhNum      = kmh != null ? parseInt(kmh, 10) : 0;
   const speedColor  = kmhNum > 130 ? '#ef4444' : kmhNum > 100 ? '#f59e0b' : '#ffffff';
 
-  // Build upcoming turns list: steps from currentStepIdx onward (skip depart/arrive)
-  // Accumulate distance so each row shows distance from current position
+  // Build upcoming turns list — skip filler steps, accumulate all distances correctly
   const upcomingTurns = [];
-  let accumDist = distToTurn; // distance to the first upcoming maneuver
+  let accumDist = distToTurn;
   for (let i = currentStepIdx + 1; i < steps.length && upcomingTurns.length < 6; i++) {
     const s = steps[i];
-    upcomingTurns.push({ step: s, dist: accumDist });
+    if (!FILLER_TYPES.has(s.maneuver?.type)) {
+      upcomingTurns.push({ step: s, dist: accumDist });
+    }
     accumDist += s.distance ?? 0;
   }
 
