@@ -9,7 +9,7 @@ const snapCoarse = (n) => Math.round(n * 333)  / 333;
 
 const DELAYS = [2000, 4000, 8000]; // exponential backoff
 
-export function useOSRM(origin, destination, profile, { fine = true, alternatives = false } = {}) {
+export function useOSRM(origin, destination, profile, { fine = true, alternatives = false, exclude = null } = {}) {
   const [route,    setRoute]    = useState(null);
   const [altRoute, setAltRoute] = useState(null);
   const [loading,  setLoading]  = useState(false);
@@ -45,7 +45,9 @@ export function useOSRM(origin, destination, profile, { fine = true, alternative
       `${BASE}/${profile}/` +
       `${snappedOrigin[0]},${snappedOrigin[1]};` +
       `${destination[0]},${destination[1]}` +
-      `?steps=true&geometries=geojson&overview=full&generate_hints=false${alternatives ? '&alternatives=true' : ''}`;
+      `?steps=true&geometries=geojson&overview=full&generate_hints=false` +
+      `${alternatives ? '&alternatives=true' : ''}` +
+      `${exclude ? `&exclude=${exclude}` : ''}`;
 
     const attempt = () => {
       setLoading(true);
@@ -88,7 +90,7 @@ export function useOSRM(origin, destination, profile, { fine = true, alternative
   }, [
     snappedOrigin?.[0], snappedOrigin?.[1],
     destination?.[0],   destination?.[1],
-    profile, alternatives,
+    profile, alternatives, exclude,
   ]);
 
   return { route, altRoute, loading, error };

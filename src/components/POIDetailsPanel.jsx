@@ -166,6 +166,8 @@ export default function POIDetailsPanel({
   onStartNavigation,
   userLocation,
   onFitRoute,
+  avoidMotorway,
+  onToggleAvoidMotorway,
 }) {
   const isMobile    = useIsMobile();
   const dragControls = useDragControls();
@@ -375,6 +377,24 @@ export default function POIDetailsPanel({
                     onModeChange={onModeChange}
                     routesByProfile={routesByProfile}
                   />
+
+                  {/* Route preferences — only for motorized modes */}
+                  {['car', 'moto', 'transit'].includes(selectedModeId) && onToggleAvoidMotorway && (
+                    <div className="flex gap-2 flex-wrap">
+                      <motion.button
+                        whileTap={{ scale: 0.93 }}
+                        onClick={onToggleAvoidMotorway}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
+                        style={avoidMotorway
+                          ? { background: 'rgba(249,115,22,0.15)', border: '1.5px solid rgba(249,115,22,0.4)', color: '#f97316' }
+                          : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }
+                        }
+                      >
+                        <span>{avoidMotorway ? '✓' : '🚫'}</span>
+                        <span>Evita autostrade</span>
+                      </motion.button>
+                    </div>
+                  )}
 
                   {/* Route summary */}
                   {routeLoading ? (

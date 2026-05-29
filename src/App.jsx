@@ -37,6 +37,9 @@ export default function App() {
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
   const [isMuted,        setIsMuted]        = useState(false);
   const [arrivedStats,   setArrivedStats]   = useState(null);
+  const [avoidMotorway,  setAvoidMotorway]  = useState(() => {
+    try { return localStorage.getItem('via-avoid-motorway') === 'true'; } catch { return false; }
+  });
   const [resumeDest,     setResumeDest]     = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('via-nav-state') ?? 'null');
@@ -118,7 +121,8 @@ export default function App() {
   // Only request alternative routes during the planning phase (not during active navigation).
   const snapFine    = !isNavigating || isOffRoute;
   const needAlts    = !isNavigating;
-  const { route: drivingRoute, altRoute: drivingAlt, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving', { fine: snapFine, alternatives: needAlts });
+  const drivingExclude = avoidMotorway ? 'motorway' : null;
+  const { route: drivingRoute, altRoute: drivingAlt, loading: drivingLoading } = useOSRM(userLocation, drivingDest, 'driving', { fine: snapFine, alternatives: needAlts, exclude: drivingExclude });
   const { route: footRoute,    altRoute: footAlt,    loading: footLoading    } = useOSRM(userLocation, footDest,    'foot',    { fine: snapFine, alternatives: needAlts });
   const { route: bikeRoute,    altRoute: bikeAlt,    loading: bikeLoading    } = useOSRM(userLocation, bikeDest,    'bike',    { fine: snapFine, alternatives: needAlts });
   const routesByProfile = useMemo(
@@ -742,6 +746,14 @@ export default function App() {
                 onStartNavigation={handleStartNavigation}
                 userLocation={userLocation}
                 onFitRoute={handleFitRoute}
+                avoidMotorway={avoidMotorway}
+                onToggleAvoidMotorway={() => {
+                  setAvoidMotorway((v) => {
+                    const next = !v;
+                    try { localStorage.setItem('via-avoid-motorway', next); } catch { }
+                    return next;
+                  });
+                }}
               />
             </div>
           )}
