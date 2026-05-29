@@ -88,9 +88,10 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem('via-favorites') ?? '[]'); } catch { return []; }
   });
-  const inputRef  = useRef(null);
+  const inputRef    = useRef(null);
   const debounceRef = useRef(null);
-  const abortRef  = useRef(null);
+  const abortRef    = useRef(null);
+  const catTokenRef = useRef(null); // stale-search guard for async Overpass category search
 
   // Local search through saved/recent when offline
   const offlineMatches = useMemo(() => {
@@ -189,34 +190,40 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
 
     // Prefer Overpass for nearby POI search when we have GPS — much more accurate than Nominatim
     if (cat.ov && userLocation) {
+      const token = {};          // unique object for this search attempt
+      catTokenRef.current = token;
       const [lng, lat] = userLocation;
-      const elements = await searchNearbyCategory(lat, lng, cat.ov);
-      if (elements) {
-        const pois = elements
-          .map((el) => {
-            const lon = el.lon ?? el.center?.lon;
-            const elLat = el.lat ?? el.center?.lat;
-            if (lon == null || elLat == null) return null;
-            const [key] = Object.keys(cat.ov);
-            const osmType = el.tags?.[key] ?? '';
-            return {
-              lat: String(elLat), lon: String(lon),
-              display_name: el.tags?.name || cat.label,
-              name: el.tags?.name || cat.label,
-              _addr: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
-              class: key === 'amenity' ? 'amenity' : key === 'shop' ? 'shop' : 'tourism',
-              type: osmType,
-              _d: haversineMeters([lng, lat], [lon, elLat]),
-            };
-          })
-          .filter(Boolean)
-          .sort((a, b) => a._d - b._d);
-        setResults(pois);
-        setLoading(false);
-        return;
-      }
+      try {
+        const elements = await searchNearbyCategory(lat, lng, cat.ov);
+        if (catTokenRef.current !== token) return; // a newer search has started
+        if (elements) {
+          const pois = elements
+            .map((el) => {
+              const lon = el.lon ?? el.center?.lon;
+              const elLat = el.lat ?? el.center?.lat;
+              if (lon == null || elLat == null) return null;
+              const [key] = Object.keys(cat.ov);
+              const osmType = el.tags?.[key] ?? '';
+              return {
+                lat: String(elLat), lon: String(lon),
+                display_name: el.tags?.name || cat.label,
+                name: el.tags?.name || cat.label,
+                _addr: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
+                class: key === 'amenity' ? 'amenity' : key === 'shop' ? 'shop' : 'tourism',
+                type: osmType,
+                _d: haversineMeters([lng, lat], [lon, elLat]),
+              };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a._d - b._d);
+          setResults(pois);
+          setLoading(false);
+          return;
+        }
+      } catch { /* fall through to Nominatim */ }
     }
 
+    catTokenRef.current = null;
     // Fall back to Nominatim
     search(cat.q);
   };
