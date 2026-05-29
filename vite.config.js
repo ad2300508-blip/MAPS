@@ -20,7 +20,13 @@ export default defineConfig({
           {
             urlPattern: /^https:\/\/basemaps\.cartocdn\.com\//,
             handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'carto-tiles', expiration: { maxEntries: 600, maxAgeSeconds: 60 * 60 * 24 * 7 } },
+            options: { cacheName: 'carto-tiles', expiration: { maxEntries: 1200, maxAgeSeconds: 60 * 60 * 24 * 7 } },
+          },
+          // Cache OSRM routing responses (2-hour TTL; snapped coords keep cache keys stable)
+          {
+            urlPattern: /^https:\/\/router\.project-osrm\.org\//,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'osrm-routes', expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 2 } },
           },
           // Cache Nominatim geocoding responses (30-minute TTL)
           {
