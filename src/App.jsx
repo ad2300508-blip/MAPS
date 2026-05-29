@@ -153,6 +153,8 @@ export default function App() {
     setNavDestCoords(null);
   }, []);
 
+  const handleDismissArrived = useCallback(() => setHasArrived(false), []);
+
   const handleModeChange = useCallback((modeId) => {
     navigator.vibrate?.([12]);
     setSelectedModeId(modeId);
@@ -363,14 +365,14 @@ export default function App() {
   // ── Android back button ─────────────────────────────────────────────────
   useEffect(() => {
     const handler = () => {
-      if (hasArrived)      { setHasArrived(false); return; }
+      if (hasArrived)      { handleDismissArrived(); return; }
       if (isNavigating)    { handleStopNavigation(false); return; }
       if (destination)     { handleClosePanel(); return; }
       if (isSearchActive)  { setIsSearchActive(false); }
     };
     document.addEventListener('backbutton', handler);
     return () => document.removeEventListener('backbutton', handler);
-  }, [hasArrived, isNavigating, destination, isSearchActive, handleStopNavigation, handleClosePanel]);
+  }, [hasArrived, isNavigating, destination, isSearchActive, handleStopNavigation, handleClosePanel, handleDismissArrived]);
 
   // ── Map pan detection: mark map as off-center ────────────────────────────
   const handleUserPan = useCallback(() => {
@@ -554,7 +556,7 @@ export default function App() {
           {hasArrived && (
             <ArrivedOverlay
               destName={navDestName}
-              onDismiss={() => setHasArrived(false)}
+              onDismiss={handleDismissArrived}
             />
           )}
         </AnimatePresence>
