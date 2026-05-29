@@ -253,6 +253,39 @@ export function maneuverIcon(type, modifier) {
   return '↑';
 }
 
+// Italian labels for OSM types shown in POI type badge
+const _TYPE_IT = {
+  restaurant: 'Ristorante', cafe: 'Bar / Caffè', bar: 'Bar', pub: 'Pub',
+  fast_food: 'Fast food', ice_cream: 'Gelateria', bakery: 'Panetteria',
+  hospital: 'Ospedale', pharmacy: 'Farmacia', clinic: 'Clinica',
+  fuel: 'Distributore', parking: 'Parcheggio',
+  bank: 'Banca', atm: 'Bancomat',
+  doctors: 'Medico', dentist: 'Dentista',
+  police: 'Polizia', post_office: 'Ufficio postale',
+  cinema: 'Cinema', theatre: 'Teatro',
+  school: 'Scuola', university: 'Università', library: 'Biblioteca',
+  supermarket: 'Supermercato', mall: 'Centro commerciale', convenience: 'Minimarket',
+  gym: 'Palestra', swimming_pool: 'Piscina',
+  place_of_worship: 'Luogo di culto',
+  museum: 'Museo', attraction: 'Attrazione', monument: 'Monumento',
+  hotel: 'Hotel', hostel: 'Ostello', motel: 'Motel',
+  viewpoint: 'Belvedere', gallery: 'Galleria', zoo: 'Zoo',
+  theme_park: 'Parco divertimenti', information: 'Informazioni',
+  park: 'Parco', garden: 'Giardino', sports_centre: 'Centro sportivo',
+  stadium: 'Stadio', nature_reserve: 'Riserva naturale',
+  castle: 'Castello', church: 'Chiesa', memorial: 'Memoriale',
+  ruins: 'Rovine', palace: 'Palazzo',
+  clothes: 'Abbigliamento', electronics: 'Elettronica',
+  hairdresser: 'Parrucchiere', florist: 'Fioraio',
+  hardware: 'Ferramenta', toys: 'Giocattoli', pet: 'Animali',
+  optician: 'Ottico', jewelry: 'Gioielleria',
+};
+
+export function localizeType(type) {
+  if (!type) return '';
+  return _TYPE_IT[type] ?? type.replace(/_/g, ' ');
+}
+
 // Pick emoji for OSM class/type
 export function placeEmoji(osmClass, osmType) {
   if (osmClass === 'amenity') {

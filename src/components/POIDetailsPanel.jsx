@@ -11,6 +11,7 @@ import {
   maneuverIcon,
   parseOpenNow,
   haversineMeters,
+  localizeType,
 } from '../data/mockData';
 
 // ─── Favorites storage ────────────────────────────────────────────────────
@@ -245,10 +246,10 @@ export default function POIDetailsPanel({
                   <h2 className="text-xl font-bold text-white leading-tight">{destination.name}</h2>
                   {destination.type && (
                     <span
-                      className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full capitalize"
+                      className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full"
                       style={{ background: 'rgba(255,255,255,0.07)', color: '#64748b' }}
                     >
-                      {destination.type.replace(/_/g, ' ')}
+                      {localizeType(destination.type)}
                     </span>
                   )}
                   {destination.address && (
