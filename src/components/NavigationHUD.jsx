@@ -44,7 +44,12 @@ export default function NavigationHUD({
   const name     = upcomingStep?.name ?? '';
 
   const icon        = maneuverIcon(type, modifier);
-  const instruction = maneuverToItalian(type, modifier, name, upcomingStep?.maneuver?.exit);
+  // When showing the arrive step as upcoming, use "in arrivo" phrasing
+  // rather than the past-tense "Sei arrivato" which would be premature
+  const rawInstruction = maneuverToItalian(type, modifier, name, upcomingStep?.maneuver?.exit);
+  const instruction = type === 'arrive' && nextStep
+    ? 'Arriverai a destinazione'
+    : rawInstruction;
 
   // Distance to the upcoming maneuver point
   const nextTurnLoc = (nextStep ?? step)?.maneuver?.location;

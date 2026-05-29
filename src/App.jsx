@@ -154,6 +154,7 @@ export default function App() {
   }, []);
 
   const handleModeChange = useCallback((modeId) => {
+    navigator.vibrate?.([12]);
     setSelectedModeId(modeId);
     try { localStorage.setItem('maps-mode', modeId); } catch { }
   }, []);
