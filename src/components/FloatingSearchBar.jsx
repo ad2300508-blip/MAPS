@@ -205,10 +205,18 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
             <input
               ref={inputRef}
               type="text"
+              enterKeyHint="search"
               placeholder="Cerca luoghi, indirizzi…"
               value={query}
               onChange={handleQueryChange}
               onFocus={() => onActiveChange(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  clearTimeout(debounceRef.current);
+                  search(query);
+                  inputRef.current?.blur();
+                }
+              }}
               className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none font-medium"
             />
 
