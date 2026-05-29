@@ -16,11 +16,17 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
-          // Cache CARTO map tiles (stale-while-revalidate)
+          // Cache CARTO map tiles — large cache for a good offline experience
           {
             urlPattern: /^https:\/\/basemaps\.cartocdn\.com\//,
             handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'carto-tiles', expiration: { maxEntries: 200 } },
+            options: { cacheName: 'carto-tiles', expiration: { maxEntries: 600, maxAgeSeconds: 60 * 60 * 24 * 7 } },
+          },
+          // Cache Nominatim geocoding responses (30-minute TTL)
+          {
+            urlPattern: /^https:\/\/nominatim\.openstreetmap\.org\//,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'nominatim-cache', expiration: { maxEntries: 100, maxAgeSeconds: 60 * 30 } },
           },
           // Cache Google Fonts
           {
