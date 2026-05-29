@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/maplibre';
 import { motion } from 'framer-motion';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { getModeById, haversineMeters, formatDistance } from '../data/mockData';
+import { getModeById, haversineMeters, formatDistance, maneuverIcon } from '../data/mockData';
 import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -135,6 +135,23 @@ function DestinationMarker({ color, emoji }) {
   );
 }
 
+// ─── Next-turn marker (shown during navigation at the upcoming maneuver point) ──
+function TurnMarker({ type, modifier, color }) {
+  const icon = maneuverIcon(type, modifier);
+  return (
+    <div style={{
+      width: 34, height: 34, borderRadius: '50%',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(10,10,20,0.93)',
+      border: `2.5px solid ${color}`,
+      fontSize: 17,
+      boxShadow: `0 2px 14px ${color}70, 0 0 0 3px ${color}18`,
+    }}>
+      {icon}
+    </div>
+  );
+}
+
 // ─── Nearby POI chip ──────────────────────────────────────────────────────
 function POIChip({ poi, onTap }) {
   return (
@@ -195,6 +212,7 @@ export default function MapView({
   is3DMode,
   isNavigating,
   isFollowing,
+  currentStepIdx,
   onPOITap,
   onLongPress,
   onUserPan,
@@ -480,6 +498,24 @@ export default function MapView({
             <DestinationMarker color={currentMode.color} emoji={destination.emoji} />
           </Marker>
         )}
+
+        {/* Next-turn marker during navigation */}
+        {isNavigating && route && currentStepIdx != null && (() => {
+          const steps    = route.legs?.[0]?.steps ?? [];
+          const nextStep = steps[currentStepIdx + 1];
+          if (!nextStep || nextStep.maneuver?.type === 'arrive') return null;
+          const loc = nextStep.maneuver?.location;
+          if (!loc) return null;
+          return (
+            <Marker longitude={loc[0]} latitude={loc[1]} anchor="center">
+              <TurnMarker
+                type={nextStep.maneuver?.type}
+                modifier={nextStep.maneuver?.modifier}
+                color={currentMode.color}
+              />
+            </Marker>
+          );
+        })()}
 
         {/* Nearby POIs — hidden during navigation or when zoomed out */}
         {!isNavigating && mapZoom >= 13 && sortedPOIs.map((poi) => (

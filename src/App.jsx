@@ -444,6 +444,7 @@ export default function App() {
         is3DMode={is3DMode}
         isNavigating={isNavigating}
         isFollowing={mapCentered}
+        currentStepIdx={currentStepIdx}
         userAccuracy={accuracy}
         userSpeed={speed}
         onPOITap={handlePOITap}
