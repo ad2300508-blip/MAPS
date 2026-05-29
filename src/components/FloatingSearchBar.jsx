@@ -244,7 +244,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     clearTimeout(debounceRef.current);
     if (q.trim()) {
       setLoading(true); // immediate spinner before debounce fires
-      debounceRef.current = setTimeout(() => search(q), 500);
+      debounceRef.current = setTimeout(() => search(q), 350);
     } else {
       setLoading(false);
       setResults([]);

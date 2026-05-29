@@ -59,6 +59,7 @@ export default function App() {
   const navStartRef    = useRef(null);   // navigation start timestamp (ms)
   const navRouteRef    = useRef(null);   // route snapshot at navigation start (for arrival stats)
   const navModeRef     = useRef(null);   // transport mode at navigation start
+  const arrivedDestRef = useRef(null);   // full dest object captured at arrival for save-to-fav
 
   // ── Real GPS + compass ──────────────────────────────────────────────────
   const { location: userLocation, heading: gpsHeading, speed, accuracy, error: gpsError } = useGeolocation();
@@ -289,10 +290,12 @@ export default function App() {
     setCurrentStepIdx(0);
     setIsOffRoute(false);
     setNavDestCoords(null);
-    navDestRef.current = null;  // clear destination marker
+    const arrivingDest = navDestRef.current;  // capture before clearing
+    navDestRef.current = null;
     try { localStorage.removeItem('via-nav-state'); } catch { }
     cancel();
     if (arrived) {
+      arrivedDestRef.current = arrivingDest;  // make available to ArrivedOverlay
       const elapsedSecs = navStartRef.current
         ? Math.round((Date.now() - navStartRef.current) / 1000)
         : null;
@@ -803,6 +806,7 @@ export default function App() {
           {hasArrived && (
             <ArrivedOverlay
               destName={navDestName}
+              dest={arrivedDestRef.current}
               stats={arrivedStats}
               onDismiss={handleDismissArrived}
               onSearchNearby={() => { handleDismissArrived(); setIsSearchActive(true); }}

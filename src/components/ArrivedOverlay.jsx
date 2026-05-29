@@ -1,9 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Search } from 'lucide-react';
+import { CheckCircle, Search, Star } from 'lucide-react';
 import { formatDistance, formatDuration } from '../data/mockData';
 
-export default function ArrivedOverlay({ destName, stats, onDismiss, onSearchNearby }) {
+function isFavorite(dest) {
+  try {
+    const favs = JSON.parse(localStorage.getItem('via-favorites') ?? '[]');
+    return favs.some((f) => f.name === dest?.name && f.coords?.join() === dest?.coords?.join());
+  } catch { return false; }
+}
+function saveFavorite(dest) {
+  if (!dest?.coords) return;
+  try {
+    const favs = JSON.parse(localStorage.getItem('via-favorites') ?? '[]');
+    if (favs.some((f) => f.name === dest.name && f.coords?.join() === dest.coords?.join())) return;
+    const updated = [{ name: dest.name, address: dest.address ?? '', coords: dest.coords, emoji: dest.emoji ?? '📍', type: dest.type ?? '' }, ...favs].slice(0, 20);
+    localStorage.setItem('via-favorites', JSON.stringify(updated));
+  } catch { }
+}
+
+export default function ArrivedOverlay({ destName, dest, stats, onDismiss, onSearchNearby }) {
+  const [saved, setSaved] = useState(() => isFavorite(dest));
+
   useEffect(() => {
     const t = setTimeout(onDismiss, 10000);
     return () => clearTimeout(t);
@@ -90,6 +108,30 @@ export default function ArrivedOverlay({ destName, stats, onDismiss, onSearchNea
         )}
 
         <div className="flex flex-col gap-2 w-full">
+          {/* Save to favorites */}
+          {dest?.coords && (
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              animate={saved ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 0.3 }}
+              onClick={() => {
+                if (!saved) {
+                  saveFavorite(dest);
+                  setSaved(true);
+                  navigator.vibrate?.([20]);
+                }
+              }}
+              className="flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-sm font-semibold focus:outline-none w-full"
+              style={saved
+                ? { background: 'rgba(251,191,36,0.12)', border: '1.5px solid rgba(251,191,36,0.35)', color: '#fbbf24' }
+                : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }
+              }
+            >
+              <Star size={15} strokeWidth={2.5} fill={saved ? '#fbbf24' : 'none'} />
+              {saved ? 'Aggiunto ai preferiti' : 'Salva nei preferiti'}
+            </motion.button>
+          )}
+
           {onSearchNearby && (
             <motion.button
               whileTap={{ scale: 0.94 }}
