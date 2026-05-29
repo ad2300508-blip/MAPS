@@ -37,6 +37,17 @@ export default function App() {
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
   const [isMuted,        setIsMuted]        = useState(false);
   const [arrivedStats,   setArrivedStats]   = useState(null);
+  const [resumeDest,     setResumeDest]     = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('via-nav-state') ?? 'null');
+      if (!saved?.dest?.coords || !saved?.timestamp) return null;
+      if (Date.now() - saved.timestamp > 4 * 3600 * 1000) {
+        localStorage.removeItem('via-nav-state');
+        return null;
+      }
+      return saved;
+    } catch { return null; }
+  });
   const [homePlace, setHomePlace] = useState(() => {
     try { return JSON.parse(localStorage.getItem('via-home') ?? 'null'); } catch { return null; }
   });
@@ -231,6 +242,15 @@ export default function App() {
     navStartRef.current   = Date.now();
     navRouteRef.current   = currentRoute;   // snapshot for arrival stats
     navModeRef.current    = selectedModeId; // snapshot mode for CO₂ calculation
+    setResumeDest(null);   // clear resume banner once navigation is actually running
+    // Persist nav state so the app can offer to resume if killed and relaunched
+    try {
+      localStorage.setItem('via-nav-state', JSON.stringify({
+        dest: { name, address: destination.address ?? '', coords, emoji: destination.emoji ?? '📍', type: destination.type ?? '' },
+        modeId: selectedModeId,
+        timestamp: Date.now(),
+      }));
+    } catch { }
     setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
     // Announce destination + first turn
@@ -261,6 +281,7 @@ export default function App() {
     setIsOffRoute(false);
     setNavDestCoords(null);
     navDestRef.current = null;  // clear destination marker
+    try { localStorage.removeItem('via-nav-state'); } catch { }
     cancel();
     if (arrived) {
       const elapsedSecs = navStartRef.current
@@ -541,12 +562,66 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* Resume navigation banner — shown on relaunch when a recent session was interrupted */}
+        <AnimatePresence>
+          {resumeDest && !isNavigating && !destination && !isSearchActive && (
+            <motion.div
+              className="pointer-events-auto absolute left-1/2 -translate-x-1/2 z-30"
+              style={{ top: 84, width: 'calc(100% - 32px)', maxWidth: 480 }}
+              initial={{ y: -12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -12, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            >
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                style={{
+                  background: 'rgba(12,12,22,0.96)',
+                  backdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(76,201,240,0.25)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                }}
+              >
+                <span style={{ fontSize: 20, flexShrink: 0 }}>
+                  {resumeDest.dest.emoji ?? '📍'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] text-slate-500 font-medium">Navigazione interrotta</p>
+                  <p className="text-sm font-semibold text-white truncate">{resumeDest.dest.name}</p>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => {
+                    handleModeChange(resumeDest.modeId ?? selectedModeId);
+                    handleDestinationSelect(resumeDest.dest);
+                    setResumeDest(null);
+                  }}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold focus:outline-none"
+                  style={{ background: 'rgba(76,201,240,0.15)', border: '1px solid rgba(76,201,240,0.35)', color: '#4cc9f0' }}
+                >
+                  Riprendi
+                </motion.button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('via-nav-state');
+                    setResumeDest(null);
+                  }}
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  <span style={{ fontSize: 12, color: '#475569' }}>✕</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Home / Work quick-access chips — visible on idle map when not navigating */}
         <AnimatePresence>
           {!isNavigating && !isSearchActive && !destination && (homePlace || workPlace) && (
             <motion.div
               className="pointer-events-auto absolute left-1/2 -translate-x-1/2 flex gap-2 z-25"
-              style={{ top: 84 }}
+              style={{ top: resumeDest ? 148 : 84 }}
               initial={{ y: -12, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -12, opacity: 0 }}
@@ -591,6 +666,7 @@ export default function App() {
             onToggle3D={handleToggle3D}
             onMyLocation={handleMyLocation}
             isNavigating={isNavigating}
+            userLocation={userLocation}
           />
         </div>
 

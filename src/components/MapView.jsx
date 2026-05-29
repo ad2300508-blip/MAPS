@@ -263,16 +263,17 @@ export default function MapView({
     return coords?.length >= 2 ? interpolateLine(coords, 180) : [];
   }, [route]);
 
-  // Alternative route — rendered as a dim background line
-  const altRouteGeoJSON = useMemo(() => {
-    const coords = altRoute?.geometry?.coordinates;
-    if (!coords?.length) return null;
-    return {
-      type: 'Feature',
-      properties: {},
-      geometry: { type: 'LineString', coordinates: coords },
-    };
-  }, [altRoute]);
+  // Alternative route — always-mounted source (opacity:0 when absent) to avoid
+  // MapLibre source add/remove flicker during planning phase GPS updates
+  const hasAltRoute = !!(altRoute?.geometry?.coordinates?.length);
+  const altRouteGeoJSON = useMemo(() => ({
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'LineString',
+      coordinates: altRoute?.geometry?.coordinates ?? [[12, 45], [12.001, 45]],
+    },
+  }), [altRoute]);
 
   const hasRoute = routeCoords.length >= 2;
 
@@ -534,22 +535,20 @@ export default function MapView({
           </Source>
         )}
 
-        {/* Alternative route — dim background line shown during planning */}
-        {altRouteGeoJSON && (
-          <Source id="alt-route-src" type="geojson" data={altRouteGeoJSON}>
-            <Layer
-              id="alt-route-line"
-              type="line"
-              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-              paint={{
-                'line-color':   currentMode.color,
-                'line-width':   currentMode.lineWidth * 0.55,
-                'line-opacity': 0.28,
-                'line-dasharray': [3, 3],
-              }}
-            />
-          </Source>
-        )}
+        {/* Alternative route — always mounted, opacity:0 when absent */}
+        <Source id="alt-route-src" type="geojson" data={altRouteGeoJSON}>
+          <Layer
+            id="alt-route-line"
+            type="line"
+            layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+            paint={{
+              'line-color':     currentMode.color,
+              'line-width':     currentMode.lineWidth * 0.55,
+              'line-opacity':   hasAltRoute ? 0.3 : 0,
+              'line-dasharray': [3, 4],
+            }}
+          />
+        </Source>
 
         {/* Route — always mounted, opacity:0 when no route (no lineMetrics needed) */}
         <Source id="route-src" type="geojson" data={routeGeoJSON}>

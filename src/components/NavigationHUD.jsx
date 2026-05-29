@@ -9,14 +9,14 @@ import {
   haversineMeters,
 } from '../data/mockData';
 
-// Lane indication → unicode arrow
+// Lane indication → unicode arrow (use well-supported chars)
 function laneArrow(ind) {
   switch (ind) {
     case 'left':         return '←';
-    case 'sharp left':   return '↰';
+    case 'sharp left':   return '↺';
     case 'slight left':  return '↖';
     case 'right':        return '→';
-    case 'sharp right':  return '↱';
+    case 'sharp right':  return '↻';
     case 'slight right': return '↗';
     case 'uturn':        return '↩';
     default:             return '↑';

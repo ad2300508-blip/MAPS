@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Minus, Locate, Box, Map } from 'lucide-react';
+import { Plus, Minus, Locate, Box, Map, Share2 } from 'lucide-react';
 
 function ControlButton({ icon: Icon, label, onClick, active, accent, style, children }) {
   return (
@@ -73,7 +73,7 @@ function CompassButton({ bearing, onClick }) {
   );
 }
 
-export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating }) {
+export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocation, isNavigating, userLocation }) {
   const [bearing, setBearing] = useState(0);
 
   // Track bearing via map events — reactive and zero-cost when map is still
@@ -122,6 +122,22 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
     navigator.vibrate?.([15]);
   };
 
+  const shareLocation = () => {
+    if (!userLocation) return;
+    const [lng, lat] = userLocation;
+    navigator.vibrate?.([15]);
+    if (typeof navigator.share === 'function') {
+      navigator.share({
+        title: 'La mia posizione',
+        url: `https://www.google.com/maps?q=${lat},${lng}`,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(`${lat.toFixed(5)}, ${lng.toFixed(5)}`).catch(() => {});
+    }
+  };
+
+  const canShare = !!userLocation;
+
   return (
     <div
       className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
@@ -142,6 +158,15 @@ export default function MapControls({ mapApiRef, is3DMode, onToggle3D, onMyLocat
         onClick={onMyLocation}
         accent
       />
+
+      {/* Share current location */}
+      {canShare && (
+        <ControlButton
+          icon={Share2}
+          label="Condividi posizione"
+          onClick={shareLocation}
+        />
+      )}
 
       {/* Compass / North Up — only appears when map is rotated */}
       {!isNavigating && <CompassButton bearing={bearing} onClick={orientNorth} />}
