@@ -593,6 +593,7 @@ export default function App() {
             <ArrivedOverlay
               destName={navDestName}
               onDismiss={handleDismissArrived}
+              onSearchNearby={() => { handleDismissArrived(); setIsSearchActive(true); }}
             />
           )}
         </AnimatePresence>

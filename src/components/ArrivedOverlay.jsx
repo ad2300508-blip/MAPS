@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Search } from 'lucide-react';
 
-export default function ArrivedOverlay({ destName, onDismiss }) {
+export default function ArrivedOverlay({ destName, onDismiss, onSearchNearby }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 8000);
     return () => clearTimeout(t);
@@ -47,18 +47,35 @@ export default function ArrivedOverlay({ destName, onDismiss }) {
           )}
         </div>
 
-        <motion.button
-          whileTap={{ scale: 0.94 }}
-          onClick={onDismiss}
-          className="mt-1 px-7 py-3 rounded-2xl text-sm font-semibold focus:outline-none"
-          style={{
-            background: 'rgba(76,201,240,0.12)',
-            border: '1.5px solid rgba(76,201,240,0.35)',
-            color: '#4cc9f0',
-          }}
-        >
-          Chiudi
-        </motion.button>
+        <div className="flex flex-col gap-2 w-full">
+          {onSearchNearby && (
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={onSearchNearby}
+              className="flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-sm font-semibold focus:outline-none w-full"
+              style={{
+                background: 'rgba(76,201,240,0.12)',
+                border: '1.5px solid rgba(76,201,240,0.35)',
+                color: '#4cc9f0',
+              }}
+            >
+              <Search size={15} strokeWidth={2.5} />
+              Cerca nelle vicinanze
+            </motion.button>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.94 }}
+            onClick={onDismiss}
+            className="px-7 py-2.5 rounded-2xl text-sm font-medium focus:outline-none w-full"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#64748b',
+            }}
+          >
+            Chiudi
+          </motion.button>
+        </div>
       </motion.div>
     </motion.div>
   );
