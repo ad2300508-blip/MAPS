@@ -164,7 +164,6 @@ export default function App() {
     const name   = destination.name;
     setNavDestCoords(coords);
     setNavDestName(name);
-    prevStepRef.current = 0;  // prevent step voice effect from double-speaking the start instruction
     setIsNavigating(true);
     setCurrentStepIdx(0);
     setHasArrived(false);
@@ -214,19 +213,6 @@ export default function App() {
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx]);
 
-  // ── Voice on step change ────────────────────────────────────────────────
-  const prevStepRef = useRef(-1);
-  useEffect(() => {
-    if (!isNavigating || !currentRoute || currentStepIdx === prevStepRef.current) return;
-    const prev = prevStepRef.current;
-    prevStepRef.current = currentStepIdx;
-    // Step went backward = route reset; skip voice (reroute handler already spoke)
-    if (currentStepIdx < prev && prev !== -1) return;
-    const steps = currentRoute.legs?.[0]?.steps ?? [];
-    const step  = steps[currentStepIdx];
-    if (!step) return;
-    speak(maneuverToItalian(step.maneuver?.type, step.maneuver?.modifier, step.name ?? '', step.maneuver?.exit));
-  }, [currentStepIdx, isNavigating, currentRoute, speak]);
 
   // ── Voice + haptic turn warnings ────────────────────────────────────────
   const vibrate = useCallback((pattern) => { navigator.vibrate?.(pattern); }, []);
