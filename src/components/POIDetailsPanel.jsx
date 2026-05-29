@@ -316,6 +316,11 @@ export default function POIDetailsPanel({
                         <span>·</span>
                         <span>Partenza: La tua posizione</span>
                       </div>
+                      {selectedModeId === 'transit' && (
+                        <p className="text-[11px] text-slate-600 mt-2">
+                          ⚠ Percorso approssimativo — verifica gli orari dei mezzi
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-slate-600 text-center py-4">Percorso non disponibile</p>
