@@ -104,9 +104,21 @@ export default function App() {
   const userLocationRef = useRef(null);
   const userHeadingRef  = useRef(null);
   const is3DModeRef     = useRef(is3DMode);
+  const lastGPSRef      = useRef(Date.now());
   useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
   useEffect(() => { userHeadingRef.current  = userHeading;  }, [userHeading]);
   useEffect(() => { is3DModeRef.current     = is3DMode;     }, [is3DMode]);
+  useEffect(() => { if (userLocation) lastGPSRef.current = Date.now(); }, [userLocation]);
+
+  // GPS staleness — tunnel detection: no update for >8 s during navigation
+  const [isGpsStale, setIsGpsStale] = useState(false);
+  useEffect(() => {
+    if (!isNavigating) { setIsGpsStale(false); return; }
+    const id = setInterval(() => {
+      setIsGpsStale(Date.now() - lastGPSRef.current > 8000);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [isNavigating]);
 
   // ── Offline detection ────────────────────────────────────────────────────
   useEffect(() => {
@@ -842,6 +854,7 @@ export default function App() {
                 modeColor={getModeById(selectedModeId).color}
                 speed={speed}
                 isOffRoute={isOffRoute}
+                isGpsStale={isGpsStale}
                 userLocation={userLocation}
                 userAccuracy={accuracy}
                 destName={navDestName}

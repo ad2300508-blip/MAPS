@@ -105,6 +105,7 @@ export default function NavigationHUD({
   modeColor,
   speed,
   isOffRoute,
+  isGpsStale,
   onStop,
   onRepeat,
   isMuted,
@@ -236,6 +237,19 @@ export default function NavigationHUD({
         >
           <AlertTriangle size={15} className="text-orange-400 flex-shrink-0" />
           <span className="text-xs font-semibold text-orange-300">Fuori percorso — Ricalcolo…</span>
+        </motion.div>
+      )}
+
+      {/* Tunnel / GPS lost banner */}
+      {!isOffRoute && isGpsStale && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-3 mb-2 px-4 py-2 rounded-2xl flex items-center gap-2"
+          style={{ background: 'rgba(71,85,105,0.35)', border: '1px solid rgba(148,163,184,0.2)' }}
+        >
+          <span className="text-xs flex-shrink-0">🚇</span>
+          <span className="text-xs font-semibold text-slate-400">Segnale GPS assente</span>
         </motion.div>
       )}
 
