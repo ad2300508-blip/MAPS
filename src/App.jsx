@@ -17,7 +17,7 @@ import { useCompassHeading } from './hooks/useCompassHeading';
 import { useOSRM } from './hooks/useOSRM';
 import { useSpeech } from './hooks/useSpeech';
 import { useWakeLock } from './hooks/useWakeLock';
-import { getModeById, haversineMeters, maneuverToItalian, maneuverToItalianShort, formatDistance, formatDistanceVoice } from './data/mockData';
+import { getModeById, haversineMeters, maneuverToItalian, maneuverToItalianShort, formatDistance, formatDistanceVoice, formatDuration } from './data/mockData';
 
 export default function App() {
   const [destination,    setDestination]    = useState(null);   // {name, address, coords, emoji}
@@ -97,6 +97,9 @@ export default function App() {
   const speak = useCallback((text, opts) => {
     if (!isMuted) _speak(text, opts);
   }, [isMuted, _speak]);
+  // Stable ref so non-voice effects can call speak without stale closure issues
+  const speakRef = useRef(speak);
+  useEffect(() => { speakRef.current = speak; }, [speak]);
 
   // ── Keep screen on during navigation ────────────────────────────────────
   useWakeLock(isNavigating);
@@ -360,7 +363,10 @@ export default function App() {
         : null;
       setArrivedStats({ secs: elapsedSecs, meters: routeMeters, co2Saved, avgSpeed });
       setHasArrived(true);
-      speak('Sei arrivato a destinazione');
+      const destNameVoice = arrivingDest?.name ? ` a ${arrivingDest.name}` : '';
+      const distVoice  = routeMeters ? ` Percorso di ${formatDistanceVoice(routeMeters)}.` : '';
+      const timeVoice  = elapsedSecs > 60 ? ` Tempo impiegato: ${formatDuration(elapsedSecs)}.` : '';
+      speak(`Sei arrivato${destNameVoice}.${distVoice}${timeVoice}`);
       navigator.vibrate?.([100, 80, 100, 80, 200]);
     }
     if (userLocationRef.current) {
@@ -384,6 +390,21 @@ export default function App() {
     const advanceDist = Math.max(isWalkBike ? 15 : 50, (speed ?? 0) * 3);
     if (haversineMeters(userLocation, nextLoc) < advanceDist) {
       navigator.vibrate?.([25]);  // soft tap: step completed
+      // After completing a step, immediately announce the next meaningful turn
+      // if the upcoming segment is long enough that the warning system won't fire quickly.
+      const FILLER = new Set(['depart', 'continue', 'new name', 'notification']);
+      const newStep   = steps[currentStepIdx + 1]; // step just reached
+      let   afterStep = null;
+      for (let j = currentStepIdx + 2; j < steps.length; j++) {
+        if (!FILLER.has(steps[j].maneuver?.type)) { afterStep = steps[j]; break; }
+      }
+      const segDist = newStep?.distance ?? 0;
+      if (afterStep && segDist > 200 && afterStep.maneuver?.type !== 'arrive') {
+        const nextInstr = maneuverToItalianShort(
+          afterStep.maneuver?.type, afterStep.maneuver?.modifier, afterStep.maneuver?.exit,
+        );
+        speakRef.current(`Tra ${formatDistanceVoice(segDist)}, ${nextInstr}`);
+      }
       setCurrentStepIdx((i) => i + 1);
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx, speed, selectedModeId]);
@@ -544,10 +565,12 @@ export default function App() {
       handleStopNavigation(true);
     } else if (dist < 200 && !approachAnnouncedRef.current) {
       approachAnnouncedRef.current = true;
-      speak('Stai arrivando a destinazione');
+      const approachDist = `${Math.round(dist / 10) * 10} metri`;
+      const approachDest = navDestName ? ` a ${navDestName}` : '';
+      speak(`Tra ${approachDist} arriverai${approachDest}`);
       navigator.vibrate?.([60]);
     }
-  }, [userLocation, isNavigating, currentRoute, navDestCoords, handleStopNavigation, speak]);
+  }, [userLocation, isNavigating, currentRoute, navDestCoords, navDestName, handleStopNavigation, speak]);
 
   // ── Map controls ────────────────────────────────────────────────────────
   const handleToggle3D = useCallback(() => {
