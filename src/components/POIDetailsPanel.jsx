@@ -138,6 +138,12 @@ function AddressRow({ text }) {
   );
 }
 
+// ─── Arrival time helper ──────────────────────────────────────────────────
+function arrivalTimeStr(secs) {
+  const d = new Date(Date.now() + secs * 1000);
+  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
 // ─── Main component ───────────────────────────────────────────────────────
 export default function POIDetailsPanel({
   destination,
@@ -156,6 +162,19 @@ export default function POIDetailsPanel({
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [favorites,  setFavorites]  = useState(loadFavorites);
   const isFav = favorites.some((f) => f.name === destination?.name && f.coords?.join() === destination?.coords?.join());
+
+  const saveSpecialPlace = useCallback((type) => {
+    if (!destination) return;
+    navigator.vibrate?.([20]);
+    const place = {
+      name:    destination.name,
+      address: destination.address,
+      coords:  destination.coords,
+      emoji:   destination.emoji,
+      type:    destination.type,
+    };
+    try { localStorage.setItem(`via-${type}`, JSON.stringify(place)); } catch { }
+  }, [destination]);
 
   const toggleFavorite = useCallback(() => {
     navigator.vibrate?.([20]);
@@ -355,6 +374,12 @@ export default function POIDetailsPanel({
                           {formatCost(currentRoute.distance, currentMode)}
                         </span>
                       </div>
+                      <p className="text-[11px] text-slate-500 mb-2">
+                        Arrivo stimato alle{' '}
+                        <span className="font-semibold" style={{ color: currentMode.color }}>
+                          {arrivalTimeStr(currentRoute.duration)}
+                        </span>
+                      </p>
                       <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{formatCO2(currentRoute.distance, currentMode)} CO₂</span>
                         <span>·</span>
@@ -409,6 +434,25 @@ export default function POIDetailsPanel({
                 </>
               ) : (
                 <div className="space-y-3">
+                  {/* Save as home / work */}
+                  <div className="flex gap-2">
+                    {[
+                      { type: 'home', icon: '🏠', label: 'Casa' },
+                      { type: 'work', icon: '💼', label: 'Lavoro' },
+                    ].map(({ type, icon, label }) => (
+                      <motion.button
+                        key={type}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => saveSpecialPlace(type)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold focus:outline-none"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
+                      >
+                        <span>{icon}</span>
+                        <span>Imposta come {label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+
                   {/* Address */}
                   {(destination.address || destination.name) && (
                     <AddressRow text={destination.address || destination.name} />

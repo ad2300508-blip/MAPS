@@ -88,6 +88,12 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem('via-favorites') ?? '[]'); } catch { return []; }
   });
+  const [homePlace, setHomePlace] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-home') ?? 'null'); } catch { return null; }
+  });
+  const [workPlace, setWorkPlace] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-work') ?? 'null'); } catch { return null; }
+  });
   const inputRef    = useRef(null);
   const debounceRef = useRef(null);
   const abortRef    = useRef(null);
@@ -108,8 +114,10 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   useEffect(() => {
     if (isActive) {
       setTimeout(() => inputRef.current?.focus(), 120);
-      // Re-sync favorites from localStorage (may have been updated by POIDetailsPanel)
+      // Re-sync saved places from localStorage (may have been updated by POIDetailsPanel)
       try { setFavorites(JSON.parse(localStorage.getItem('via-favorites') ?? '[]')); } catch { }
+      try { setHomePlace(JSON.parse(localStorage.getItem('via-home') ?? 'null')); } catch { }
+      try { setWorkPlace(JSON.parse(localStorage.getItem('via-work') ?? 'null')); } catch { }
     }
   }, [isActive]);
 
@@ -398,6 +406,35 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                     </p>
                   ) : !query.trim() ? (
                     <>
+                      {/* Home / Work quick access */}
+                      {(homePlace || workPlace) && (
+                        <div className="flex gap-2 px-3 pt-2 pb-0.5">
+                          {[
+                            { place: homePlace, icon: '🏠', label: 'Casa' },
+                            { place: workPlace, icon: '💼', label: 'Lavoro' },
+                          ].filter(({ place }) => place).map(({ place, icon, label }) => {
+                            const dist = userLocation && place.coords
+                              ? formatDistance(haversineMeters(userLocation, place.coords))
+                              : null;
+                            return (
+                              <motion.button
+                                key={label}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={() => { onResultSelect(place); handleClose(); }}
+                                className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl focus:outline-none text-left"
+                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}
+                              >
+                                <span className="text-base leading-none">{icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-slate-300 truncate">{label}</p>
+                                  {dist && <p className="text-[10px] text-slate-500 truncate">{dist}</p>}
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {/* Category shortcuts */}
                       <div className="flex gap-2 px-3 pt-2 pb-1 overflow-x-auto no-scrollbar">
                         {CATEGORIES.map((cat) => (

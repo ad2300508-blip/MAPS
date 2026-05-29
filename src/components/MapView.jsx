@@ -7,6 +7,7 @@ import { useNearbyPOIs } from '../hooks/useNearbyPOIs';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const SEED = 3;
+const AUTOMOTIVE_TYPES = new Set(['fuel', 'parking']);
 
 // Offset a [lng,lat] point by distM meters along bearingDeg (degrees clockwise from north)
 function forwardOffset([lng, lat], bearingDeg, distM) {
@@ -242,7 +243,6 @@ export default function MapView({
   );
 
   // Show the closest POIs within 2 km; hide automotive POIs for walk/bike modes
-  const AUTOMOTIVE_TYPES = new Set(['fuel', 'parking']);
   const sortedPOIs = useMemo(() => {
     const filtered = (selectedModeId === 'walk' || selectedModeId === 'bike')
       ? nearbyPOIs.filter(p => !AUTOMOTIVE_TYPES.has(p.type))
