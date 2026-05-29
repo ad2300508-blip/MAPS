@@ -93,10 +93,11 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
         'accept-language': 'it,en',
       });
 
-      // Bias results toward user's location if available
+      // Bias results toward user's location — 0.3° ≈ 33 km, soft-bounded so
+      // results outside still appear when the local area has nothing matching
       if (userLocation) {
         const [lng, lat] = userLocation;
-        params.set('viewbox', `${lng - 1},${lat - 1},${lng + 1},${lat + 1}`);
+        params.set('viewbox', `${lng - 0.3},${lat - 0.3},${lng + 0.3},${lat + 0.3}`);
         params.set('bounded', 0);
       }
 

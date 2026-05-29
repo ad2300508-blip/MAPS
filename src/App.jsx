@@ -26,7 +26,9 @@ export default function App() {
     return 'car';
   });
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [is3DMode,       setIs3DMode]       = useState(true);
+  const [is3DMode,       setIs3DMode]       = useState(() => {
+    try { return localStorage.getItem('maps-3d') !== 'false'; } catch { return true; }
+  });
   const [isNavigating,   setIsNavigating]   = useState(false);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isOffRoute,     setIsOffRoute]     = useState(false);
@@ -330,6 +332,7 @@ export default function App() {
   const handleToggle3D = useCallback(() => {
     setIs3DMode((prev) => {
       const next = !prev;
+      try { localStorage.setItem('maps-3d', next); } catch { }
       mapApiRef.current?.easeTo({ pitch: next ? 52 : 0, duration: 900 });
       return next;
     });
