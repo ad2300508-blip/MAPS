@@ -196,6 +196,8 @@ export default function App() {
     setIsNavigating(true);
     setCurrentStepIdx(0);
     setHasArrived(false);
+    prevOffRouteRef.current  = false;  // reset off-route hysteresis for new navigation session
+    prevRouteKeyRef.current  = null;   // reset so first route load isn't treated as a reroute
     setDestination(null);  // collapses the panel; OSRM now uses navDestCoords
 
     // Announce destination + first turn
