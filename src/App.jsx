@@ -246,6 +246,7 @@ export default function App() {
     const isWalkBike = selectedModeId === 'walk' || selectedModeId === 'bike';
     const advanceDist = Math.max(isWalkBike ? 15 : 50, (speed ?? 0) * 3);
     if (haversineMeters(userLocation, nextLoc) < advanceDist) {
+      navigator.vibrate?.([25]);  // soft tap: step completed
       setCurrentStepIdx((i) => i + 1);
     }
   }, [userLocation, isNavigating, currentRoute, currentStepIdx, speed, selectedModeId]);

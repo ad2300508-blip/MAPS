@@ -353,15 +353,21 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                               Cancella
                             </button>
                           </div>
-                          {recent.map((item, i) => (
-                            <ResultRow
-                              key={i}
-                              emoji="🕐"
-                              primary={item.name}
-                              secondary={item.address}
-                              onClick={() => { onResultSelect(item); handleClose(); }}
-                            />
-                          ))}
+                          {recent.map((item, i) => {
+                            const dist = userLocation && item.coords
+                              ? formatDistance(haversineMeters(userLocation, item.coords))
+                              : null;
+                            return (
+                              <ResultRow
+                                key={i}
+                                emoji="🕐"
+                                primary={item.name}
+                                secondary={item.address}
+                                dist={dist}
+                                onClick={() => { onResultSelect(item); handleClose(); }}
+                              />
+                            );
+                          })}
                         </>
                       )}
 
