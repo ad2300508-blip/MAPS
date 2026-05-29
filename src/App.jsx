@@ -395,6 +395,13 @@ export default function App() {
     if (isNavigating) setMapCentered(true);
   }, [isNavigating]);
 
+  // Auto-recenter after 15s of user-initiated pan during navigation
+  useEffect(() => {
+    if (!isNavigating || mapCentered) return;
+    const t = setTimeout(handleReCenter, 15000);
+    return () => clearTimeout(t);
+  }, [isNavigating, mapCentered, handleReCenter]);
+
   // ── Keep destination marker visible during navigation ───────────────────
   useEffect(() => {
     if (destination) navDestRef.current = destination;
