@@ -179,7 +179,7 @@ export default function NavigationHUD({
             {onToggleMute && (
               <button
                 onClick={onToggleMute}
-                className="w-11 h-[42px] rounded-2xl flex items-center justify-center focus:outline-none"
+                className="w-11 h-11 rounded-2xl flex items-center justify-center focus:outline-none"
                 style={
                   isMuted
                     ? { background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.25)' }
@@ -195,7 +195,7 @@ export default function NavigationHUD({
             {/* Stop navigation */}
             <button
               onClick={onStop}
-              className="w-11 h-[42px] rounded-2xl flex items-center justify-center focus:outline-none"
+              className="w-11 h-11 rounded-2xl flex items-center justify-center focus:outline-none"
               style={{ background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.3)' }}
             >
               <X size={20} className="text-red-400" />

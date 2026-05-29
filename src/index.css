@@ -127,10 +127,6 @@ body,
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.glass-hover:hover {
-  background: rgba(25, 25, 40, 0.90);
-  border-color: rgba(255, 255, 255, 0.18);
-}
 
 /* ─── Custom scrollbar ─────────────────────────────────────── */
 ::-webkit-scrollbar {
@@ -156,14 +152,3 @@ body,
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ─── Neon text glow ───────────────────────────────────────── */
-.text-neon {
-  text-shadow: 0 0 10px rgba(76, 201, 240, 0.6);
-}
-
-/* ─── Route info card gradient border ─────────────────────── */
-.gradient-border {
-  background: linear-gradient(#141420, #141420) padding-box,
-    linear-gradient(135deg, #7209b7, #4361ee, #4cc9f0) border-box;
-  border: 1px solid transparent;
-}
