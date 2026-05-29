@@ -36,12 +36,19 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const [recent, setRecent] = useState(() => {
     try { return JSON.parse(localStorage.getItem('maps-recent') ?? '[]'); } catch { return []; }
   });
+  const [favorites, setFavorites] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-favorites') ?? '[]'); } catch { return []; }
+  });
   const inputRef  = useRef(null);
   const debounceRef = useRef(null);
   const abortRef  = useRef(null);
 
   useEffect(() => {
-    if (isActive) setTimeout(() => inputRef.current?.focus(), 120);
+    if (isActive) {
+      setTimeout(() => inputRef.current?.focus(), 120);
+      // Re-sync favorites from localStorage (may have been updated by POIDetailsPanel)
+      try { setFavorites(JSON.parse(localStorage.getItem('via-favorites') ?? '[]')); } catch { }
+    }
   }, [isActive]);
 
   const search = useCallback(async (q) => {
@@ -228,6 +235,31 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                     </p>
                   ) : !query.trim() ? (
                     <>
+                      {/* Saved places */}
+                      {favorites.length > 0 && (
+                        <>
+                          <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
+                            Salvati
+                          </p>
+                          {favorites.map((item, i) => {
+                            const dist = userLocation && item.coords
+                              ? formatDistance(haversineMeters(userLocation, item.coords))
+                              : null;
+                            return (
+                              <ResultRow
+                                key={i}
+                                emoji="⭐"
+                                primary={item.name}
+                                secondary={item.address}
+                                dist={dist}
+                                onClick={() => { onResultSelect(item); handleClose(); }}
+                              />
+                            );
+                          })}
+                        </>
+                      )}
+
+                      {/* Recent searches */}
                       {recent.length > 0 && (
                         <>
                           <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
@@ -239,15 +271,13 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                               emoji="🕐"
                               primary={item.name}
                               secondary={item.address}
-                              onClick={() => {
-                                onResultSelect(item);
-                                handleClose();
-                              }}
+                              onClick={() => { onResultSelect(item); handleClose(); }}
                             />
                           ))}
                         </>
                       )}
-                      {recent.length === 0 && (
+
+                      {favorites.length === 0 && recent.length === 0 && (
                         <p className="px-4 py-6 text-sm text-slate-600 text-center">
                           Digita per cercare una destinazione
                         </p>

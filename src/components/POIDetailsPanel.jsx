@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { X, MapPin, Navigation, ChevronRight, Loader } from 'lucide-react';
+import { X, MapPin, Navigation, Star, Loader } from 'lucide-react';
 import {
   TRANSPORT_MODES,
   formatDuration,
@@ -10,6 +10,14 @@ import {
   maneuverToItalian,
   maneuverIcon,
 } from '../data/mockData';
+
+// ─── Favorites storage ────────────────────────────────────────────────────
+function loadFavorites() {
+  try { return JSON.parse(localStorage.getItem('via-favorites') ?? '[]'); } catch { return []; }
+}
+function saveFavorites(list) {
+  try { localStorage.setItem('via-favorites', JSON.stringify(list)); } catch { }
+}
 
 function useIsMobile() {
   const [v, setV] = useState(() => window.innerWidth < 768);
@@ -109,7 +117,20 @@ export default function POIDetailsPanel({
 }) {
   const isMobile    = useIsMobile();
   const dragControls = useDragControls();
-  const [activeTab, setActiveTab] = useState('directions');
+  const [activeTab,  setActiveTab]  = useState('directions');
+  const [favorites,  setFavorites]  = useState(loadFavorites);
+  const isFav = favorites.some((f) => f.name === destination?.name && f.coords?.join() === destination?.coords?.join());
+
+  const toggleFavorite = useCallback(() => {
+    navigator.vibrate?.([20]);
+    setFavorites((prev) => {
+      const next = isFav
+        ? prev.filter((f) => !(f.name === destination.name && f.coords?.join() === destination.coords?.join()))
+        : [{ name: destination.name, address: destination.address, coords: destination.coords, emoji: destination.emoji, type: destination.type }, ...prev].slice(0, 20);
+      saveFavorites(next);
+      return next;
+    });
+  }, [isFav, destination]);
 
   const profileMap = { car: 'driving', walk: 'foot', bike: 'bike', transit: 'driving', moto: 'driving' };
   const currentMode  = TRANSPORT_MODES.find((m) => m.id === selectedModeId) ?? TRANSPORT_MODES[0];
@@ -193,13 +214,35 @@ export default function POIDetailsPanel({
                   )}
                 </div>
 
-                <motion.button
-                  onClick={onClose}
-                  whileTap={{ scale: 0.9 }}
-                  className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center focus:outline-none"
-                >
-                  <X size={16} className="text-slate-400" />
-                </motion.button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Favorite toggle */}
+                  <motion.button
+                    onClick={toggleFavorite}
+                    whileTap={{ scale: 0.85 }}
+                    animate={isFav ? { scale: [1, 1.25, 1] } : {}}
+                    transition={{ duration: 0.3 }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center focus:outline-none"
+                    style={{
+                      background: isFav ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${isFav ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    }}
+                  >
+                    <Star
+                      size={16}
+                      fill={isFav ? '#fbbf24' : 'none'}
+                      style={{ color: isFav ? '#fbbf24' : '#64748b' }}
+                    />
+                  </motion.button>
+
+                  {/* Close */}
+                  <motion.button
+                    onClick={onClose}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-9 h-9 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center focus:outline-none"
+                  >
+                    <X size={16} className="text-slate-400" />
+                  </motion.button>
+                </div>
               </div>
 
               {/* Tabs */}
