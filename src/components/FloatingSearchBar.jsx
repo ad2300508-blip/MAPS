@@ -11,7 +11,7 @@ const CATEGORIES = [
   { label: 'Supermercato', icon: '🛒', q: 'supermercato' },
   { label: 'Parcheggio', icon: '🅿️', q: 'parcheggio'  },
   { label: 'ATM',        icon: '💳', q: 'bancomat'    },
-  { label: 'Medico',     icon: '👨‍⚕️', q: 'medico'     },
+  { label: 'Medico',     icon: '🩺', q: 'medico'     },
   { label: 'Hotel',      icon: '🏨', q: 'hotel'       },
   { label: 'Ospedale',   icon: '🏥', q: 'ospedale'    },
 ];
