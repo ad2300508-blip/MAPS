@@ -3,6 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader } from 'lucide-react';
 import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
 
+const CATEGORIES = [
+  { label: 'Ristoranti', icon: '🍽', q: 'ristorante' },
+  { label: 'Caffè',      icon: '☕', q: 'caffè'       },
+  { label: 'Hotel',      icon: '🏨', q: 'hotel'       },
+  { label: 'Farmacia',   icon: '💊', q: 'farmacia'    },
+  { label: 'Benzina',    icon: '⛽', q: 'distributore benzina' },
+  { label: 'Supermercato', icon: '🛒', q: 'supermercato' },
+  { label: 'Ospedale',   icon: '🏥', q: 'ospedale'    },
+  { label: 'Parcheggio', icon: '🅿️', q: 'parcheggio'  },
+];
+
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
 function ResultRow({ emoji, primary, secondary, dist, onClick }) {
@@ -100,6 +111,14 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
       setResults([]);
       abortRef.current?.abort();
     }
+  };
+
+  const handleCategoryTap = (cat) => {
+    navigator.vibrate?.([15]);
+    setQuery(cat.q);
+    setLoading(true);
+    clearTimeout(debounceRef.current);
+    search(cat.q);
   };
 
   const handleClose = () => {
@@ -235,6 +254,22 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                     </p>
                   ) : !query.trim() ? (
                     <>
+                      {/* Category shortcuts */}
+                      <div className="flex gap-2 px-3 pt-2 pb-1 overflow-x-auto no-scrollbar">
+                        {CATEGORIES.map((cat) => (
+                          <motion.button
+                            key={cat.q}
+                            onClick={() => handleCategoryTap(cat)}
+                            whileTap={{ scale: 0.91 }}
+                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', color: '#94a3b8' }}
+                          >
+                            <span>{cat.icon}</span>
+                            <span>{cat.label}</span>
+                          </motion.button>
+                        ))}
+                      </div>
+
                       {/* Saved places */}
                       {favorites.length > 0 && (
                         <>

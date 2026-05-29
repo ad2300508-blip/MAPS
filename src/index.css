@@ -152,6 +152,10 @@ body,
   color: #fff;
 }
 
+/* ─── Hide scrollbar but keep scrollability ────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ─── Neon text glow ───────────────────────────────────────── */
 .text-neon {
   text-shadow: 0 0 10px rgba(76, 201, 240, 0.6);
