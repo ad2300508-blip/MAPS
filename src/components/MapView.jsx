@@ -13,7 +13,7 @@ const INITIAL_VIEW = (() => {
   try {
     const lng = parseFloat(localStorage.getItem('maps-last-lng') ?? '');
     const lat = parseFloat(localStorage.getItem('maps-last-lat') ?? '');
-    if (!isNaN(lng) && !isNaN(lat)) return { longitude: lng, latitude: lat, zoom: 12, pitch: 0, bearing: 0 };
+    if (!isNaN(lng) && !isNaN(lat)) return { longitude: lng, latitude: lat, zoom: 14, pitch: 0, bearing: 0 };
   } catch { /* private browsing */ }
   return { longitude: 12, latitude: 45, zoom: 5, pitch: 0, bearing: 0 };
 })();
