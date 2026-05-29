@@ -147,6 +147,12 @@ export default function NavigationHUD({
   // Lane guidance data — from the first intersection of the upcoming maneuver step
   const lanes = upcomingStep?.intersections?.[0]?.lanes ?? null;
 
+  // Road reference (e.g. "A1", "SS7") and motorway destinations ("Roma/Napoli")
+  // shown on the current step so the driver knows which road they're on
+  const roadRef   = step?.ref ?? null;
+  const roadDests = step?.destinations ?? null;
+  const roadSign  = [roadRef, roadDests].filter(Boolean).join(' › ') || null;
+
   // Distance to the upcoming maneuver point
   const nextTurnLoc = (nextStep ?? step)?.maneuver?.location;
   const distToTurn  = (nextTurnLoc && userLocation)
@@ -319,10 +325,18 @@ export default function NavigationHUD({
             <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
               {instruction}
             </p>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {step.name && (
                 <p className="text-[10px] text-slate-600 truncate flex-1">
                   📍 {step.name}
+                </p>
+              )}
+              {roadSign && (
+                <p
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.07)', color: '#64748b', letterSpacing: '0.02em' }}
+                >
+                  {roadSign}
                 </p>
               )}
               {destName && (

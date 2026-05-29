@@ -213,7 +213,10 @@ export default function POIDetailsPanel({
     ? { hidden: { y: '100%', opacity: 0 }, visible: { y: 0, opacity: 1 }, exit: { y: '100%', opacity: 0 } }
     : { hidden: { x: '-100%', opacity: 0 }, visible: { x: 0, opacity: 1 }, exit: { x: '-100%', opacity: 0 } };
 
-  const steps = currentRoute?.legs?.[0]?.steps ?? [];
+  const rawSteps = currentRoute?.legs?.[0]?.steps ?? [];
+  // Filter navigation noise from the directions list — keep only meaningful maneuvers
+  const FILLER = new Set(['depart', 'continue', 'new name', 'notification']);
+  const steps = rawSteps.filter((s) => !FILLER.has(s.maneuver?.type));
 
   return (
     <AnimatePresence>
