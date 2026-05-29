@@ -12,15 +12,21 @@ function buildQuery(lat, lng, radius) {
   const amenityRx = 'restaurant|cafe|bar|hospital|pharmacy|fuel|bank|cinema|fast_food|pub|ice_cream|parking|atm|doctors|dentist|police|post_office';
   const tourismRx = 'museum|attraction|hotel|viewpoint|monument|gallery';
   const shopRx    = 'supermarket|mall|convenience|bakery|clothes|electronics';
+  const leisureRx = 'park|sports_centre|swimming_pool|stadium|garden|nature_reserve';
+  const historicRx= 'monument|memorial|castle|ruins|church|palace';
   // Filter by name at the server so the out-limit applies only to named places
   return `[out:json][timeout:20];
 (
   node["amenity"~"^(${amenityRx})$"]["name"](around:${radius},${lat},${lng});
   node["tourism"~"^(${tourismRx})$"]["name"](around:${radius},${lat},${lng});
   node["shop"~"^(${shopRx})$"]["name"](around:${radius},${lat},${lng});
+  node["leisure"~"^(${leisureRx})$"]["name"](around:${radius},${lat},${lng});
+  node["historic"~"^(${historicRx})$"]["name"](around:${radius},${lat},${lng});
   way["amenity"~"^(${amenityRx})$"]["name"](around:${radius},${lat},${lng});
   way["tourism"~"^(${tourismRx})$"]["name"](around:${radius},${lat},${lng});
   way["shop"~"^(${shopRx})$"]["name"](around:${radius},${lat},${lng});
+  way["leisure"~"^(${leisureRx})$"]["name"](around:${radius},${lat},${lng});
+  way["historic"~"^(${historicRx})$"]["name"](around:${radius},${lat},${lng});
 );
 out center 50;`;
 }
@@ -83,9 +89,11 @@ export function useNearbyPOIs(location, { radius = 800, paused = false } = {}) {
         .slice(0, 40)
         .map((el) => {
           const osmClass = el.tags.amenity ? 'amenity'
-            : el.tags.tourism ? 'tourism'
+            : el.tags.tourism  ? 'tourism'
+            : el.tags.leisure  ? 'leisure'
+            : el.tags.historic ? 'historic'
             : 'shop';
-          const osmType = el.tags.amenity ?? el.tags.tourism ?? el.tags.shop ?? '';
+          const osmType = el.tags.amenity ?? el.tags.tourism ?? el.tags.leisure ?? el.tags.historic ?? el.tags.shop ?? '';
           // ways use center.lat/lon, nodes use lat/lon directly
           const lon = el.lon ?? el.center?.lon;
           const lat = el.lat ?? el.center?.lat;

@@ -292,9 +292,22 @@ export function placeEmoji(osmClass, osmType) {
     };
     return map[osmType] ?? '🛍️';
   }
+  if (osmClass === 'leisure') {
+    const map = {
+      park: '🌳', garden: '🌳', nature_reserve: '🌿',
+      sports_centre: '🏋️', swimming_pool: '🏊', stadium: '🏟️', pitch: '⚽',
+    };
+    return map[osmType] ?? '🌳';
+  }
+  if (osmClass === 'historic') {
+    const map = {
+      monument: '🗿', memorial: '🪨', castle: '🏰', ruins: '🏚️',
+      church: '⛪', palace: '🏰',
+    };
+    return map[osmType] ?? '🏛️';
+  }
   const clasMap = {
-    railway: '🚂', aeroway: '✈️', natural: '🌿',
-    leisure: '🌳', historic: '🏛️', sport: '⚽',
+    railway: '🚂', aeroway: '✈️', natural: '🌿', sport: '⚽',
   };
   return clasMap[osmClass] ?? '📍';
 }
