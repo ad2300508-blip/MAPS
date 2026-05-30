@@ -123,27 +123,39 @@ async function searchNearbyCategory(lat, lng, ov, radius = 3000) {
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
-function ResultRow({ emoji, primary, secondary, dist, onClick }) {
+function ResultRow({ emoji, primary, secondary, dist, onClick, onRemove }) {
   return (
-    <motion.button
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left focus:outline-none"
-      onClick={onClick}
-      whileTap={{ scale: 0.99 }}
-    >
-      <div
-        className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+    <div className="flex items-center">
+      <motion.button
+        className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left focus:outline-none min-w-0"
+        onClick={onClick}
+        whileTap={{ scale: 0.99 }}
       >
-        {emoji}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate leading-tight">{primary}</p>
-        <p className="text-xs text-slate-500 truncate mt-0.5">{secondary}</p>
-      </div>
-      {dist != null && (
-        <span className="flex-shrink-0 text-[11px] font-semibold text-slate-500 ml-1">{dist}</span>
+        <div
+          className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate leading-tight">{primary}</p>
+          <p className="text-xs text-slate-500 truncate mt-0.5">{secondary}</p>
+        </div>
+        {dist != null && (
+          <span className="flex-shrink-0 text-[11px] font-semibold text-slate-500 ml-1">{dist}</span>
+        )}
+      </motion.button>
+      {onRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg mr-2 focus:outline-none"
+          style={{ background: 'rgba(255,255,255,0.04)' }}
+          aria-label="Rimuovi"
+        >
+          <X size={11} className="text-slate-600" />
+        </button>
       )}
-    </motion.button>
+    </div>
   );
 }
 
@@ -648,6 +660,11 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                                 secondary={item.address}
                                 dist={dist}
                                 onClick={() => { onResultSelect(item); handleClose(); }}
+                                onRemove={() => {
+                                  const updated = recent.filter((_, j) => j !== i);
+                                  setRecent(updated);
+                                  try { localStorage.setItem('maps-recent', JSON.stringify(updated)); } catch {}
+                                }}
                               />
                             );
                           })}

@@ -179,6 +179,12 @@ export default function POIDetailsPanel({
   const [activeTab,  setActiveTab]  = useState('directions');
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [favorites,  setFavorites]  = useState(loadFavorites);
+  const [homePlace,  setHomePlace]  = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-home') ?? 'null'); } catch { return null; }
+  });
+  const [workPlace,  setWorkPlace]  = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-work') ?? 'null'); } catch { return null; }
+  });
   const isFav = favorites.some((f) => f.name === destination?.name && f.coords?.join() === destination?.coords?.join());
 
   const saveSpecialPlace = useCallback((type) => {
@@ -192,7 +198,8 @@ export default function POIDetailsPanel({
       type:    destination.type,
     };
     try { localStorage.setItem(`via-${type}`, JSON.stringify(place)); } catch { }
-    // Notify other components in the same tab (App shortcut chips, FloatingSearchBar)
+    if (type === 'home') setHomePlace(place);
+    if (type === 'work') setWorkPlace(place);
     window.dispatchEvent(new CustomEvent('via-places-changed'));
   }, [destination]);
 
@@ -384,6 +391,45 @@ export default function POIDetailsPanel({
                     onModeChange={onModeChange}
                     routesByProfile={routesByProfile}
                   />
+
+                  {/* Home / work quick save — show if not yet set to this place */}
+                  {destination?.coords && (() => {
+                    const isHome = homePlace?.coords?.join() === destination.coords.join();
+                    const isWork = workPlace?.coords?.join() === destination.coords.join();
+                    if (isHome || isWork) {
+                      return (
+                        <div
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold self-start"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
+                        >
+                          <span>{isHome ? '🏠' : '💼'}</span>
+                          <span>{isHome ? 'La tua casa' : 'Il tuo lavoro'}</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="flex gap-2">
+                        {!homePlace && (
+                          <button
+                            onClick={() => saveSpecialPlace('home')}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
+                            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#475569' }}
+                          >
+                            <span>🏠</span><span>Imposta come Casa</span>
+                          </button>
+                        )}
+                        {!workPlace && (
+                          <button
+                            onClick={() => saveSpecialPlace('work')}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold focus:outline-none"
+                            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#475569' }}
+                          >
+                            <span>💼</span><span>Imposta come Lavoro</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Route preferences — only for motorized modes */}
                   {['car', 'moto', 'transit'].includes(selectedModeId) && (

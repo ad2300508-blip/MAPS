@@ -722,6 +722,11 @@ export default function App() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] text-slate-500 font-medium">Navigazione interrotta</p>
                   <p className="text-sm font-semibold text-white truncate">{resumeDest.dest.name}</p>
+                  {userLocation && resumeDest.dest.coords && (
+                    <p className="text-[10px] text-slate-600 mt-0.5">
+                      ~{formatDistance(haversineMeters(userLocation, resumeDest.dest.coords))} in linea d'aria
+                    </p>
+                  )}
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.94 }}

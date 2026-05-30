@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown, Share2, Check } from 'lucide-react';
+import { X, AlertTriangle, Volume2, VolumeX, List, ChevronDown, ChevronUp, Share2, Check } from 'lucide-react';
 import {
   formatDistance,
   formatDuration,
@@ -114,8 +114,9 @@ export default function NavigationHUD({
   userAccuracy,
   destName,
 }) {
-  const [showTurns,  setShowTurns]  = useState(false);
-  const [etaShared,  setEtaShared]  = useState(false);
+  const [showTurns,   setShowTurns]   = useState(false);
+  const [etaShared,   setEtaShared]   = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   if (!route) return null;
 
@@ -203,6 +204,69 @@ export default function NavigationHUD({
       upcomingTurns.push({ step: s, dist: accumDist });
     }
     accumDist += s.distance ?? 0;
+  }
+
+  // Minimized: compact pill with turn icon + distance + ETA + stop button
+  if (isMinimized) {
+    return (
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 z-40"
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 80, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+      >
+        <div className="mx-3 mb-3">
+          <motion.div
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{
+              background: 'rgba(9,9,15,0.97)',
+              backdropFilter: 'blur(32px)',
+              WebkitBackdropFilter: 'blur(32px)',
+              border: `1.5px solid ${turnColor}50`,
+              boxShadow: `0 -4px 24px rgba(0,0,0,0.5), 0 0 20px ${turnColor}10`,
+            }}
+          >
+            <motion.div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+              animate={turnUrgent ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ repeat: Infinity, duration: 0.8 }}
+              style={{ background: `${turnColor}18`, border: `1.5px solid ${turnColor}55` }}
+            >
+              {icon}
+            </motion.div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xl font-bold tabular-nums leading-tight" style={{ color: turnColor }}>
+                {formatDistance(distToTurn)}
+              </p>
+              <p className="text-xs text-slate-400 truncate leading-tight">{instruction}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide">Arrivo</p>
+              <p className="text-sm font-bold" style={{ color: modeColor }}>{arrivalTime(remainingSecs)}</p>
+              <p className="text-[9px] text-slate-600 tabular-nums">{formatDuration(remainingSecs)}</p>
+            </div>
+            {/* Expand */}
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="w-9 h-9 rounded-xl flex items-center justify-center focus:outline-none flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <ChevronUp size={16} className="text-slate-400" />
+            </button>
+            {/* Stop */}
+            <button
+              onClick={onStop}
+              className="w-9 h-9 rounded-xl flex items-center justify-center focus:outline-none flex-shrink-0"
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.3)' }}
+            >
+              <X size={16} className="text-red-400" />
+            </button>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
   }
 
   return (
@@ -304,8 +368,17 @@ export default function NavigationHUD({
           transition: 'border-color 0.4s, box-shadow 0.4s',
         }}
       >
+        {/* Drag handle / tap to minimize */}
+        <button
+          onClick={() => setIsMinimized(true)}
+          className="w-full flex justify-center items-center pt-2.5 pb-1 focus:outline-none"
+          aria-label="Minimizza"
+        >
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </button>
+
         {/* Turn instruction row */}
-        <div className="flex items-center gap-4 px-5 pt-5 pb-4">
+        <div className="flex items-center gap-4 px-5 pt-3 pb-4">
           <div className="flex flex-col items-center gap-1.5">
             <motion.div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
