@@ -117,6 +117,13 @@ export default function App() {
   useEffect(() => { is3DModeRef.current     = is3DMode;     }, [is3DMode]);
   useEffect(() => { if (userLocation) lastGPSRef.current = Date.now(); }, [userLocation]);
 
+  // Screen orientation lock — keep portrait during navigation to prevent accidental rotation
+  useEffect(() => {
+    if (!isNavigating) { try { screen.orientation?.unlock(); } catch { } return; }
+    try { screen.orientation?.lock('portrait').catch(() => {}); } catch { }
+    return () => { try { screen.orientation?.unlock(); } catch { } };
+  }, [isNavigating]);
+
   // GPS staleness — tunnel detection: no update for >8 s during navigation
   const [isGpsStale, setIsGpsStale] = useState(false);
   useEffect(() => {

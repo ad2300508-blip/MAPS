@@ -1,7 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Search, Star } from 'lucide-react';
 import { formatDistance, formatDuration } from '../data/mockData';
+
+const PARTICLE_COLORS = ['#4cc9f0', '#4361ee', '#10b981', '#fbbf24', '#f97316', '#a855f7'];
+function Particles() {
+  const particles = useMemo(() => Array.from({ length: 16 }, (_, i) => ({
+    id: i,
+    x: (((i % 8) / 7) - 0.5) * 280 + (Math.random() - 0.5) * 40,
+    y: -(80 + Math.random() * 120),
+    color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
+    size: 6 + Math.random() * 6,
+    delay: Math.random() * 0.4,
+    rotate: Math.random() * 720 - 360,
+  })), []);
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ borderRadius: 24 }}>
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          initial={{ x: 0, y: 0, scale: 0, opacity: 1, rotate: 0 }}
+          animate={{ x: p.x, y: p.y, scale: 1, opacity: 0, rotate: p.rotate }}
+          transition={{ duration: 1.2, delay: p.delay, ease: 'easeOut' }}
+          style={{
+            position: 'absolute',
+            bottom: '50%', left: '50%',
+            width: p.size, height: p.size,
+            borderRadius: p.id % 3 === 0 ? '50%' : 2,
+            background: p.color,
+            boxShadow: `0 0 6px ${p.color}`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 function isFavorite(dest) {
   try {
@@ -42,7 +75,7 @@ export default function ArrivedOverlay({ destName, dest, stats, onDismiss, onSea
         exit={{   scale: 0.8,  opacity: 0, y: 20 }}
         transition={{ type: 'spring', stiffness: 280, damping: 22 }}
         onClick={(e) => e.stopPropagation()}
-        className="flex flex-col items-center gap-5 px-8 py-9 rounded-3xl text-center mx-6"
+        className="relative flex flex-col items-center gap-5 px-8 py-9 rounded-3xl text-center mx-6"
         style={{
           background: 'rgba(12,16,28,0.97)',
           border: '1.5px solid rgba(76,201,240,0.25)',
@@ -50,6 +83,7 @@ export default function ArrivedOverlay({ destName, dest, stats, onDismiss, onSea
           maxWidth: 300,
         }}
       >
+        <Particles />
         {/* Animated checkmark */}
         <motion.div
           animate={{ scale: [1, 1.18, 1], rotate: [0, 8, -8, 0] }}
