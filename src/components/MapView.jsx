@@ -168,7 +168,11 @@ function TurnMarker({ type, modifier, color }) {
 }
 
 // ─── Nearby POI chip ──────────────────────────────────────────────────────
-function POIChip({ poi, onTap, staggerIdx }) {
+function POIChip({ poi, onTap, staggerIdx, isLightMap }) {
+  const bg     = isLightMap ? 'rgba(255,255,255,0.95)' : 'rgba(10,10,20,0.88)';
+  const border = isLightMap ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.18)';
+  const textC  = isLightMap ? 'rgba(15,23,42,0.9)'        : 'rgba(255,255,255,0.85)';
+  const subC   = isLightMap ? 'rgba(71,85,105,0.8)'       : 'rgba(148,163,184,0.7)';
   return (
     <motion.button
       onClick={(e) => { e.stopPropagation(); onTap(poi); }}
@@ -180,25 +184,25 @@ function POIChip({ poi, onTap, staggerIdx }) {
       style={{ cursor: 'pointer' }}
     >
       <div style={{
-        background: 'rgba(10,10,20,0.88)',
+        background: bg,
         backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.18)',
+        border,
         borderRadius: 12,
         padding: '5px 8px',
         display: 'flex', alignItems: 'center', gap: 5,
-        boxShadow: '0 2px 16px rgba(0,0,0,0.5)',
+        boxShadow: isLightMap ? '0 2px 12px rgba(0,0,0,0.15)' : '0 2px 16px rgba(0,0,0,0.5)',
         maxWidth: 130,
       }}>
         <span style={{ fontSize: 16, lineHeight: 1 }}>{poi.emoji}</span>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <span style={{
-            fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+            fontSize: 11, fontWeight: 600, color: textC,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {poi.name}
           </span>
           {poi._d != null && (
-            <span style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', lineHeight: 1 }}>
+            <span style={{ fontSize: 9, color: subC, lineHeight: 1 }}>
               {formatDistance(poi._d)}
             </span>
           )}
@@ -621,7 +625,7 @@ export default function MapView({
           const visible = sortedPOIs.slice(0, visibleCap);
           return [...visible].reverse().map((poi, revIdx) => (
             <Marker key={poi.id} longitude={poi.coords[0]} latitude={poi.coords[1]} anchor="bottom">
-              <POIChip poi={poi} onTap={onPOITap} staggerIdx={visible.length - 1 - revIdx} />
+              <POIChip poi={poi} onTap={onPOITap} staggerIdx={visible.length - 1 - revIdx} isLightMap={!!(mapStyleUrl && !mapStyleUrl.includes('dark-matter'))} />
             </Marker>
           ));
         })()}
