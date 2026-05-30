@@ -386,28 +386,38 @@ export default function NavigationHUD({
 
         {/* Turn instruction row */}
         <div className="flex items-center gap-4 px-5 pt-3 pb-4">
-          <div className="flex flex-col items-center gap-1.5">
+          {/* Maneuver icon — animates on step change */}
+          <AnimatePresence mode="wait">
             <motion.div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
-              animate={turnUrgent ? { scale: [1, 1.08, 1] } : {}}
-              transition={{ repeat: Infinity, duration: 0.8 }}
-              style={{
-                background: `${turnColor}18`,
-                border: `1.5px solid ${turnColor}55`,
-              }}
+              key={`icon-${currentStepIdx}`}
+              className="flex flex-col items-center gap-1.5 flex-shrink-0"
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.7, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              {icon}
-            </motion.div>
-            {onRepeat && (
-              <button
-                onClick={() => onRepeat(instruction)}
-                className="w-8 h-6 rounded-lg flex items-center justify-center focus:outline-none"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+              <motion.div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+                animate={turnUrgent ? { scale: [1, 1.08, 1] } : {}}
+                transition={{ repeat: Infinity, duration: 0.8 }}
+                style={{
+                  background: `${turnColor}18`,
+                  border: `1.5px solid ${turnColor}55`,
+                }}
               >
-                <Volume2 size={11} className="text-slate-500" />
-              </button>
-            )}
-          </div>
+                {icon}
+              </motion.div>
+              {onRepeat && (
+                <button
+                  onClick={() => onRepeat(instruction)}
+                  className="w-8 h-6 rounded-lg flex items-center justify-center focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <Volume2 size={11} className="text-slate-500" />
+                </button>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           <div className="flex-1 min-w-0">
             <p
@@ -431,30 +441,41 @@ export default function NavigationHUD({
               </div>
             )}
             {lanes && <LaneGuide lanes={lanes} modeColor={turnColor} />}
-            <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
-              {instruction}
-            </p>
-            {/* Current road + destination */}
-            <div className="flex items-center gap-1.5 mt-1 min-w-0">
-              {step.name && (
-                <p className="text-xs text-slate-400 truncate flex-1 leading-tight">
-                  {step.name}
+            {/* Instruction + road name — slide in on step change */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`instr-${currentStepIdx}`}
+                initial={{ x: 14, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -14, opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+              >
+                <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
+                  {instruction}
                 </p>
-              )}
-              {roadSign && (
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.09)', color: '#64748b', letterSpacing: '0.03em' }}
-                >
-                  {roadSign}
-                </span>
-              )}
-              {destName && !step.name && (
-                <p className="text-xs text-slate-500 flex-shrink-0 truncate">
-                  → {destName}
-                </p>
-              )}
-            </div>
+                {/* Current road + destination */}
+                <div className="flex items-center gap-1.5 mt-1 min-w-0">
+                  {step.name && (
+                    <p className="text-xs text-slate-400 truncate flex-1 leading-tight">
+                      {step.name}
+                    </p>
+                  )}
+                  {roadSign && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.09)', color: '#64748b', letterSpacing: '0.03em' }}
+                    >
+                      {roadSign}
+                    </span>
+                  )}
+                  {destName && !step.name && (
+                    <p className="text-xs text-slate-500 flex-shrink-0 truncate">
+                      → {destName}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <div className="flex flex-col gap-1.5 flex-shrink-0">

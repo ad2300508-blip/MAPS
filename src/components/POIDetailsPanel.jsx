@@ -87,8 +87,10 @@ function InlineModeSelector({ selectedModeId, onModeChange, routesByProfile }) {
   return (
     <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
       {TRANSPORT_MODES.map((mode) => {
-        const sel = mode.id === selectedModeId;
-        const rd  = routesByProfile?.[profileMap[mode.id]];
+        const sel     = mode.id === selectedModeId;
+        const rd      = routesByProfile?.[profileMap[mode.id]];
+        const isEco   = mode.co2PerKm === 0;
+        const co2Line = rd && isEco ? `🌱 -${formatCO2Savings(rd.distance)}` : null;
         return (
           <motion.button
             key={mode.id}
@@ -111,6 +113,11 @@ function InlineModeSelector({ selectedModeId, onModeChange, routesByProfile }) {
               </span>
             ) : (
               <span className="text-[11px] text-slate-700">—</span>
+            )}
+            {co2Line && (
+              <span className="text-[9px] leading-none mt-0.5" style={{ color: sel ? '#10b981' : '#1e5c48' }}>
+                {co2Line}
+              </span>
             )}
           </motion.button>
         );
