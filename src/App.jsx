@@ -692,7 +692,8 @@ export default function App() {
   // ── Map pan detection: mark map as off-center ────────────────────────────
   const handleUserPan = useCallback(() => {
     if (isNavigating) setMapCentered(false);
-  }, [isNavigating]);
+    if (isSearchActive) setIsSearchActive(false); // dismiss search on map interaction
+  }, [isNavigating, isSearchActive]);
 
   // Re-center during navigation also resets the flag
   const handleReCenter = useCallback(() => {
