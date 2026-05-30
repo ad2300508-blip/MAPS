@@ -136,6 +136,19 @@ export default function App() {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
+  // ── Re-engage follow mode when app comes back to foreground ─────────────
+  // On mobile, the user may lock the screen mid-navigation. When they unlock,
+  // the map may be panned off-center. Re-center immediately on visibility.
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'visible' && isNavigating) {
+        setMapCentered(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [isNavigating]);
+
   // ── Sync home/work places when POIDetailsPanel or search bar saves them ─
   useEffect(() => {
     const handler = () => {

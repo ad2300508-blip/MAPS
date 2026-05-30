@@ -519,9 +519,14 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                 <div className="px-1 pb-2 max-h-[55dvh] overflow-y-auto">
                   {results.length > 0 ? (
                     <>
-                      <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
-                        {results[0]?._d != null ? '📍 Vicino a te' : 'Risultati'}
-                      </p>
+                      <div className="flex items-center justify-between px-4 pt-2 pb-1">
+                        <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest">
+                          {results[0]?._d != null ? '📍 Vicino a te' : 'Risultati'}
+                        </p>
+                        <span className="text-[10px] text-slate-700 tabular-nums">
+                          {results.length} {results.length === 1 ? 'risultato' : 'risultati'}
+                        </span>
+                      </div>
                       {results.map((r, i) => {
                         const item = parseResult(r);
                         const coords = [parseFloat(r.lon), parseFloat(r.lat)];
