@@ -39,9 +39,10 @@ export default function App() {
   const [isOffRoute,     setIsOffRoute]     = useState(false);
   const [hasArrived,     setHasArrived]     = useState(false);
   const [mapCentered,    setMapCentered]    = useState(true);
-  const [isHudMinimized, setIsHudMinimized] = useState(false);
-  const [isOnline,       setIsOnline]       = useState(navigator.onLine);
-  const [isMuted,        setIsMuted]        = useState(false);
+  const [isHudMinimized,  setIsHudMinimized]  = useState(false);
+  const [isOnline,        setIsOnline]        = useState(navigator.onLine);
+  const [isMuted,         setIsMuted]         = useState(false);
+  const [speedModeWarn,   setSpeedModeWarn]   = useState(false);
   const [arrivedStats,   setArrivedStats]   = useState(null);
   const [avoidMotorway,  setAvoidMotorway]  = useState(() => {
     try { return localStorage.getItem('via-avoid-motorway') === 'true'; } catch { return false; }
@@ -177,6 +178,28 @@ export default function App() {
     window.addEventListener('via-places-changed', handler);
     return () => window.removeEventListener('via-places-changed', handler);
   }, []);
+
+  // ── Speed-mode mismatch: warn if walking/biking but moving at car speed ──
+  const speedWarnTimerRef = useRef(null);
+  useEffect(() => {
+    const isEcoMode = selectedModeId === 'walk' || selectedModeId === 'bike';
+    if (!isEcoMode || !speed || !isNavigating) {
+      clearTimeout(speedWarnTimerRef.current);
+      setSpeedModeWarn(false);
+      return;
+    }
+    const kmh = speed * 3.6;
+    // Sustained speed > 20 km/h is impossible on foot (>15 km/h for bike is fast but possible)
+    const threshold = selectedModeId === 'walk' ? 12 : 28;
+    if (kmh > threshold) {
+      clearTimeout(speedWarnTimerRef.current);
+      speedWarnTimerRef.current = setTimeout(() => setSpeedModeWarn(true), 4000);
+    } else {
+      clearTimeout(speedWarnTimerRef.current);
+      setSpeedModeWarn(false);
+    }
+    return () => clearTimeout(speedWarnTimerRef.current);
+  }, [speed, selectedModeId, isNavigating]);
 
   // ── Real routing ────────────────────────────────────────────────────────
   // navDestCoords persists through navigation so OSRM can reroute off-path.
@@ -955,6 +978,45 @@ export default function App() {
             <p className="text-xs text-red-400 font-medium">⚠ {gpsError}</p>
           </div>
         )}
+
+        {/* Speed-mode mismatch warning */}
+        <AnimatePresence>
+          {speedModeWarn && isNavigating && (
+            <motion.div
+              className="absolute left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
+              style={{ top: 32, width: 'calc(100% - 32px)', maxWidth: 380 }}
+              initial={{ y: -16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -16, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            >
+              <div
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+                style={{ background: 'rgba(17,24,39,0.97)', backdropFilter: 'blur(20px)', border: '1px solid rgba(249,115,22,0.35)' }}
+              >
+                <span style={{ fontSize: 18, flexShrink: 0 }}>🚗</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-orange-400">Velocità elevata</p>
+                  <p className="text-[10px] text-slate-500">Stai andando a {Math.round((speed ?? 0) * 3.6)} km/h in modalità {selectedModeId === 'walk' ? 'a piedi' : 'bici'}</p>
+                </div>
+                <button
+                  onClick={() => { handleModeChange('car'); setSpeedModeWarn(false); }}
+                  className="flex-shrink-0 px-2.5 py-1 rounded-xl text-xs font-bold focus:outline-none"
+                  style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', color: '#f97316' }}
+                >
+                  Auto
+                </button>
+                <button
+                  onClick={() => setSpeedModeWarn(false)}
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  <span style={{ fontSize: 11, color: '#475569' }}>✕</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Destination panel */}
         <AnimatePresence>

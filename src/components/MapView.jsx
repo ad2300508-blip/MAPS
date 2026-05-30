@@ -247,7 +247,8 @@ export default function MapView({
   const [mapZoom,        setMapZoom]        = useState(INITIAL_VIEW.zoom);
 
   const currentMode    = useMemo(() => getModeById(selectedModeId), [selectedModeId]);
-  const nearbyPOIs     = useNearbyPOIs(userLocation, { paused: isNavigating });
+  const poiRadius = selectedModeId === 'walk' ? 400 : selectedModeId === 'bike' ? 600 : 1000;
+  const nearbyPOIs     = useNearbyPOIs(userLocation, { paused: isNavigating, radius: poiRadius });
   const accuracyGeoJSON = useMemo(
     () => (userLocation && userAccuracy > 8 ? accuracyPolygon(userLocation, userAccuracy) : null),
     [userLocation, userAccuracy],
