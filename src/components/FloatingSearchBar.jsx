@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader, Mic, MicOff } from 'lucide-react';
-import { placeEmoji, haversineMeters, formatDistance } from '../data/mockData';
+import { placeEmoji, haversineMeters, formatDistance, parseOpenNow } from '../data/mockData';
 
 // ─── Voice search hook ────────────────────────────────────────────────────
 function useVoiceSearch(onResult) {
@@ -132,7 +132,7 @@ function relativeDate(ts) {
   return new Date(ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 }
 
-function ResultRow({ emoji, primary, secondary, dist, onClick, onRemove }) {
+function ResultRow({ emoji, primary, secondary, dist, openNow, onClick, onRemove }) {
   return (
     <div className="flex items-center">
       <motion.button
@@ -147,7 +147,20 @@ function ResultRow({ emoji, primary, secondary, dist, onClick, onRemove }) {
           {emoji}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate leading-tight">{primary}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-sm font-medium text-white truncate leading-tight">{primary}</p>
+            {openNow != null && (
+              <span
+                className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                style={openNow
+                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
+                  : { background: 'rgba(239,68,68,0.12)',  color: '#f87171' }
+                }
+              >
+                {openNow ? 'Aperto' : 'Chiuso'}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 truncate mt-0.5">{secondary}</p>
         </div>
         {dist != null && (
@@ -337,6 +350,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                 _addr: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
                 class: key === 'amenity' ? 'amenity' : key === 'shop' ? 'shop' : 'tourism',
                 type: osmType,
+                hours: el.tags?.opening_hours ?? null,
                 _d: haversineMeters(locationForSearch, [lon, elLat]),
               };
             })
@@ -548,6 +562,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                         const dist = userLocation && !isNaN(coords[0])
                           ? formatDistance(haversineMeters(userLocation, coords))
                           : null;
+                        const openNow = r.hours ? parseOpenNow(r.hours) : null;
                         return (
                           <ResultRow
                             key={i}
@@ -555,6 +570,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                             primary={item.nameShort}
                             secondary={item.address}
                             dist={dist}
+                            openNow={openNow}
                             onClick={() => handleSelect(item)}
                           />
                         );
