@@ -64,6 +64,7 @@ export default function App() {
     return () => clearInterval(id);
   }, [mapStyle]);
   const [isUsingAltRoute, setIsUsingAltRoute] = useState(false);
+  const [undoNavState,   setUndoNavState]   = useState(null);
   const [resumeDest,     setResumeDest]     = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('via-nav-state') ?? 'null');
@@ -155,6 +156,13 @@ export default function App() {
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   }, [isNavigating]);
+
+  // ── Auto-dismiss undo-stop pill after 6 seconds ──────────────────────────
+  useEffect(() => {
+    if (!undoNavState) return;
+    const t = setTimeout(() => setUndoNavState(null), 6000);
+    return () => clearTimeout(t);
+  }, [undoNavState]);
 
   // ── Sync home/work places when POIDetailsPanel or search bar saves them ─
   useEffect(() => {
@@ -368,6 +376,9 @@ export default function App() {
     navDestRef.current = null;
     try { localStorage.removeItem('via-nav-state'); } catch { }
     cancel();
+    if (!arrived && arrivingDest?.coords) {
+      setUndoNavState({ dest: arrivingDest, modeId: navModeRef.current ?? 'car' });
+    }
     if (arrived) {
       arrivedDestRef.current = arrivingDest;  // make available to ArrivedOverlay
       const elapsedSecs = navStartRef.current
@@ -979,6 +990,56 @@ export default function App() {
                   {Math.round(speed * 3.6)}
                 </p>
                 <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-tight">km/h</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Undo stop navigation pill — disappears after 6s */}
+        <AnimatePresence>
+          {undoNavState && !isNavigating && (
+            <motion.div
+              className="pointer-events-auto absolute left-1/2 -translate-x-1/2 z-30"
+              style={{ bottom: 100, width: 'calc(100% - 32px)', maxWidth: 400 }}
+              initial={{ y: 24, opacity: 0, scale: 0.96 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 24, opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            >
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                style={{
+                  background: 'rgba(12,12,22,0.97)',
+                  backdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(249,115,22,0.3)',
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.55)',
+                }}
+              >
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{undoNavState.dest.emoji ?? '📍'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-orange-400 font-semibold">Navigazione fermata</p>
+                  <p className="text-sm font-bold text-white truncate">{undoNavState.dest.name}</p>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.93 }}
+                  onClick={() => {
+                    const state = undoNavState;
+                    setUndoNavState(null);
+                    handleModeChange(state.modeId);
+                    handleDestinationSelect(state.dest);
+                  }}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold focus:outline-none"
+                  style={{ background: 'rgba(249,115,22,0.18)', border: '1px solid rgba(249,115,22,0.4)', color: '#f97316' }}
+                >
+                  Riprendi
+                </motion.button>
+                <button
+                  onClick={() => setUndoNavState(null)}
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  <span style={{ fontSize: 12, color: '#475569' }}>✕</span>
+                </button>
               </div>
             </motion.div>
           )}

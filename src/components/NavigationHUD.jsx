@@ -243,6 +243,11 @@ export default function NavigationHUD({
                 {formatDistance(distToTurn)}
               </p>
               <p className="text-xs text-slate-400 truncate leading-tight">{instruction}</p>
+              {next2Step && next2Step.maneuver?.type !== 'arrive' && distToNext2 != null && (
+                <p className="text-[10px] text-slate-600 truncate leading-tight mt-0.5">
+                  poi {formatDistance(distToNext2)}: {maneuverIcon(next2Step.maneuver?.type, next2Step.maneuver?.modifier)}
+                </p>
+              )}
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-[10px] text-slate-500 uppercase tracking-wide">Arrivo</p>

@@ -123,6 +123,15 @@ async function searchNearbyCategory(lat, lng, ov, radius = 3000) {
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
+function relativeDate(ts) {
+  const days = Math.floor((Date.now() - ts) / 86400000);
+  if (days === 0) return 'oggi';
+  if (days === 1) return 'ieri';
+  if (days < 7)  return `${days} giorni fa`;
+  if (days < 30) return `${Math.floor(days / 7)} sett. fa`;
+  return new Date(ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+}
+
 function ResultRow({ emoji, primary, secondary, dist, onClick, onRemove }) {
   return (
     <div className="flex items-center">
@@ -696,24 +705,26 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                         </>
                       )}
 
-                      {/* Trip history — recent completed navigations */}
-                      {tripHistory.length > 0 && favorites.length === 0 && recent.length === 0 && (
+                      {/* Trip history — recent completed navigations (always shown, max 3) */}
+                      {tripHistory.length > 0 && (
                         <>
                           <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
-                            Viaggi completati
+                            Viaggi recenti
                           </p>
-                          {tripHistory.slice(0, 5).map((trip, i) => {
+                          {tripHistory.slice(0, 3).map((trip, i) => {
                             const dist = userLocation && trip.coords
                               ? formatDistance(haversineMeters(userLocation, trip.coords))
                               : null;
-                            const date = new Date(trip.ts);
-                            const dateStr = date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+                            const modeIcon = trip.modeId === 'walk' ? '🚶' : trip.modeId === 'bike' ? '🚴' : trip.modeId === 'moto' ? '🏍️' : '🚗';
+                            const dateLabel = trip.ts ? relativeDate(trip.ts) : '';
+                            const durationLabel = trip.secs ? `${Math.round(trip.secs / 60)} min` : '';
+                            const parts = [dateLabel, modeIcon, trip.meters ? formatDistance(trip.meters) : null, durationLabel].filter(Boolean);
                             return (
                               <ResultRow
                                 key={i}
                                 emoji={trip.emoji ?? '📍'}
                                 primary={trip.name}
-                                secondary={`${dateStr} · ${trip.modeId === 'walk' ? '🚶' : trip.modeId === 'bike' ? '🚴' : '🚗'} ${trip.meters ? formatDistance(trip.meters) : ''}`}
+                                secondary={parts.join(' · ')}
                                 dist={dist}
                                 onClick={() => {
                                   onResultSelect({

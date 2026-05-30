@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader } from 'lucide-react';
-import { TRANSPORT_MODES, formatDuration, formatDistance, formatCO2, formatCost } from '../data/mockData';
+import { TRANSPORT_MODES, formatDuration, formatDistance, formatCO2, formatCO2Savings, formatCost } from '../data/mockData';
 
 function eta(secs) {
   const d = new Date(Date.now() + secs * 1000);
@@ -52,9 +52,14 @@ export default function TransportModeSelector({
   const currentRoute = routesByProfile?.[profileMap[selectedModeId]];
   const hasDestination = !!destination && !!currentRoute;
 
-  const distStr = currentRoute ? formatDistance(currentRoute.distance) : null;
-  const co2Str  = currentRoute ? formatCO2(currentRoute.distance, selectedMode) : null;
-  const costStr = currentRoute ? formatCost(currentRoute.distance, selectedMode) : null;
+  const distStr   = currentRoute ? formatDistance(currentRoute.distance) : null;
+  const isEcoMode = selectedMode.co2PerKm === 0;
+  const co2Str    = currentRoute
+    ? isEcoMode
+      ? formatCO2Savings(currentRoute.distance)
+      : formatCO2(currentRoute.distance, selectedMode)
+    : null;
+  const costStr   = currentRoute ? formatCost(currentRoute.distance, selectedMode) : null;
 
   return (
     <motion.div
@@ -93,8 +98,8 @@ export default function TransportModeSelector({
                       animate={{ opacity: [1, 0.3, 1] }}
                       transition={{ repeat: Infinity, duration: 2 }}
                     />
-                    <span className="text-xs text-slate-400">
-                      {selectedMode.co2PerKm === 0 ? 'Emissioni zero' : `${selectedMode.co2PerKm} g CO₂/km`}
+                    <span className="text-xs" style={{ color: isEcoMode ? '#10b981' : '#94a3b8' }}>
+                      {isEcoMode ? '🌱 Emissioni zero' : `${selectedMode.co2PerKm} g CO₂/km`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -112,8 +117,11 @@ export default function TransportModeSelector({
                   <span className="text-sm text-slate-400">{distStr}</span>
                   {co2Str && (
                     <span className="text-xs font-medium px-1.5 py-0.5 rounded-md"
-                      style={{ color: selectedMode.co2PerKm === 0 ? '#10b981' : '#f59e0b', background: 'rgba(255,255,255,0.06)' }}>
-                      {co2Str} CO₂
+                      style={{
+                        color: isEcoMode ? '#10b981' : '#f59e0b',
+                        background: isEcoMode ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.06)',
+                      }}>
+                      {isEcoMode ? `🌱 -${co2Str} CO₂` : `${co2Str} CO₂`}
                     </span>
                   )}
                   <span className="ml-auto text-sm font-semibold" style={{ color: selectedMode.color }}>
