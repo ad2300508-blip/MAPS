@@ -6,6 +6,7 @@ import {
   formatDuration,
   formatDistance,
   formatCO2,
+  formatCO2Savings,
   formatCost,
   maneuverToItalian,
   maneuverIcon,
@@ -516,7 +517,13 @@ export default function POIDetailsPanel({
                         </span>
                       </p>
                       <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-                        <span>{formatCO2(mainRoute.distance, currentMode)} CO₂</span>
+                        {currentMode.co2PerKm === 0 ? (
+                          <span style={{ color: '#10b981' }}>
+                            🌱 -{formatCO2Savings(mainRoute.distance)} CO₂ vs auto
+                          </span>
+                        ) : (
+                          <span>{formatCO2(mainRoute.distance, currentMode)} CO₂</span>
+                        )}
                         {viaLabel && (
                           <>
                             <span>·</span>

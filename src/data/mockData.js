@@ -153,6 +153,14 @@ export function formatCO2(meters, mode) {
   return kg < 0.1 ? `${Math.round(kg * 1000)} g` : `${kg.toFixed(2)} kg`;
 }
 
+// CO₂ saved vs average car (120 g/km) — useful for eco modes with co2PerKm = 0
+export function formatCO2Savings(meters) {
+  const saved = (meters / 1000) * 120; // grams vs car
+  if (saved < 100) return `${Math.round(saved)} g`;
+  if (saved < 1000) return `${Math.round(saved / 10) * 10} g`;
+  return `${(saved / 1000).toFixed(2)} kg`;
+}
+
 export function formatCost(meters, mode) {
   if (mode.id === 'transit') return 'Variabile';
   const cost = (meters / 1000) * (mode.costPerKm ?? 0);
