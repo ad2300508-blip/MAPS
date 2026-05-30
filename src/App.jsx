@@ -61,7 +61,9 @@ export default function App() {
     if (mapStyle !== 'auto') return;
     const tick = () => setAutoEffective(getAutoStyleName());
     const id = setInterval(tick, 60_000);
-    return () => clearInterval(id);
+    // Also update immediately on visibility change (app foregrounded after hours)
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
   }, [mapStyle]);
   const [isUsingAltRoute, setIsUsingAltRoute] = useState(false);
   const [undoNavState,   setUndoNavState]   = useState(null);
@@ -758,6 +760,7 @@ export default function App() {
         is3DMode={is3DMode}
         isNavigating={isNavigating}
         isFollowing={mapCentered}
+        isOffRoute={isOffRoute}
         currentStepIdx={currentStepIdx}
         userAccuracy={accuracy}
         userSpeed={speed}

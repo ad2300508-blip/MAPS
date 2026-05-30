@@ -232,6 +232,7 @@ export default function MapView({
   is3DMode,
   isNavigating,
   isFollowing,
+  isOffRoute,
   currentStepIdx,
   mapStyleUrl,
   onPOITap,
@@ -315,28 +316,31 @@ export default function MapView({
     },
   }), [visibleCoords]);
 
+  // Route color — orange tint when off-route to signal "recalculating"
+  const routeColor = isOffRoute ? '#f97316' : currentMode.color;
+
   // Outer glow — wide, blurred, low opacity
   const glowLayer = useMemo(() => ({
     id: 'route-glow', type: 'line',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-      'line-color':   currentMode.color,
+      'line-color':   routeColor,
       'line-width':   24,
       'line-blur':    18,
       'line-opacity': hasRoute ? 0.22 : 0,
     },
-  }), [currentMode.color, hasRoute]);
+  }), [routeColor, hasRoute]);
 
   // Core solid line — reliable everywhere, no lineMetrics needed
   const lineLayer = useMemo(() => ({
     id: 'route-line', type: 'line',
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-      'line-color':   currentMode.color,
+      'line-color':   routeColor,
       'line-width':   currentMode.lineWidth,
-      'line-opacity': hasRoute ? 0.92 : 0,
+      'line-opacity': hasRoute ? (isOffRoute ? 0.5 : 0.92) : 0,
     },
-  }), [currentMode.color, currentMode.lineWidth, hasRoute]);
+  }), [routeColor, currentMode.lineWidth, hasRoute, isOffRoute]);
 
   // Bright centre stripe for depth
   const coreLayer = useMemo(() => ({
@@ -345,9 +349,9 @@ export default function MapView({
     paint: {
       'line-color':   '#ffffff',
       'line-width':   Math.max(1.5, currentMode.lineWidth * 0.22),
-      'line-opacity': hasRoute ? 0.35 : 0,
+      'line-opacity': hasRoute && !isOffRoute ? 0.35 : 0,
     },
-  }), [currentMode.lineWidth, hasRoute]);
+  }), [currentMode.lineWidth, hasRoute, isOffRoute]);
 
   // Direction arrows along the route — small ▶ chevrons spaced every 80 px
   const arrowLayer = useMemo(() => ({
