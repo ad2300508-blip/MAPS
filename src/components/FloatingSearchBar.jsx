@@ -168,7 +168,7 @@ function ResultRow({ emoji, primary, secondary, dist, onClick, onRemove }) {
   );
 }
 
-export default function FloatingSearchBar({ isActive, onActiveChange, onResultSelect, userLocation, isOnline = true }) {
+export default function FloatingSearchBar({ isActive, onActiveChange, onResultSelect, userLocation, searchCenter = null, isOnline = true }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -310,10 +310,12 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     abortRef.current?.abort();
 
     // Prefer Overpass for nearby POI search when we have GPS — much more accurate than Nominatim
-    if (cat.ov && userLocation) {
+    // Use searchCenter (map center) when the user has panned away from their GPS position
+    const locationForSearch = searchCenter ?? userLocation;
+    if (cat.ov && locationForSearch) {
       const token = {};          // unique object for this search attempt
       catTokenRef.current = token;
-      const [lng, lat] = userLocation;
+      const [lng, lat] = locationForSearch;
       try {
         const elements = await searchNearbyCategory(lat, lng, cat.ov);
         if (catTokenRef.current !== token) return; // a newer search has started
@@ -335,7 +337,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                 _addr: [el.tags?.['addr:street'], el.tags?.['addr:housenumber']].filter(Boolean).join(' '),
                 class: key === 'amenity' ? 'amenity' : key === 'shop' ? 'shop' : 'tourism',
                 type: osmType,
-                _d: haversineMeters([lng, lat], [lon, elLat]),
+                _d: haversineMeters(locationForSearch, [lon, elLat]),
               };
             })
             .filter(Boolean)
@@ -624,6 +626,16 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                               </div>
                             );
                           })}
+                        </div>
+                      )}
+
+                      {/* "Searching at map center" badge */}
+                      {searchCenter && userLocation && haversineMeters(userLocation, searchCenter) > 600 && (
+                        <div className="flex items-center gap-1.5 px-4 pt-2 pb-1">
+                          <span style={{ fontSize: 10, color: '#4cc9f0' }}>📍</span>
+                          <span className="text-[10px] font-medium" style={{ color: '#4cc9f0' }}>
+                            Ricerca centrata sull&apos;area visualizzata
+                          </span>
                         </div>
                       )}
 

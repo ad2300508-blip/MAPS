@@ -82,6 +82,8 @@ export default function App() {
   const [workPlace, setWorkPlace] = useState(() => {
     try { return JSON.parse(localStorage.getItem('via-work') ?? 'null'); } catch { return null; }
   });
+  const [mapSearchCenter, setMapSearchCenter] = useState(null);
+  const mapCenterTimerRef = useRef(null);
   const mapApiRef      = useRef(null);
   const navDestRef     = useRef(null);   // keeps destination marker visible during navigation
   const navStartRef    = useRef(null);   // navigation start timestamp (ms)
@@ -220,6 +222,7 @@ export default function App() {
     navigator.vibrate?.([30]);  // light tap feedback
     setDestination(dest);
     setIsSearchActive(false);
+    setMapSearchCenter(null);
     setIsNavigating(false);
     setCurrentStepIdx(0);
     setIsOffRoute(false);
@@ -704,6 +707,13 @@ export default function App() {
   const handleUserPan = useCallback(() => {
     if (isNavigating) setMapCentered(false);
     if (isSearchActive) setIsSearchActive(false); // dismiss search on map interaction
+    if (!isNavigating) {
+      clearTimeout(mapCenterTimerRef.current);
+      mapCenterTimerRef.current = setTimeout(() => {
+        const map = mapApiRef.current?.getMap?.();
+        if (map) { const c = map.getCenter(); setMapSearchCenter([c.lng, c.lat]); }
+      }, 400);
+    }
   }, [isNavigating, isSearchActive]);
 
   // Re-center during navigation also resets the flag
@@ -766,9 +776,10 @@ export default function App() {
             <div className="pointer-events-auto">
               <FloatingSearchBar
                 isActive={isSearchActive}
-                onActiveChange={setIsSearchActive}
+                onActiveChange={(v) => { setIsSearchActive(v); if (!v) setMapSearchCenter(null); }}
                 onResultSelect={handleDestinationSelect}
                 userLocation={userLocation}
+                searchCenter={mapSearchCenter}
                 isOnline={isOnline}
               />
             </div>
@@ -872,6 +883,37 @@ export default function App() {
                   </motion.button>
                 );
               })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* "Search here" chip — appears when map is panned far from GPS position */}
+        <AnimatePresence>
+          {!isNavigating && !isSearchActive && !destination && mapSearchCenter && userLocation &&
+            haversineMeters(userLocation, mapSearchCenter) > 600 && (
+            <motion.div
+              className="pointer-events-auto absolute left-1/2 -translate-x-1/2 z-25"
+              style={{ bottom: 84 }}
+              initial={{ y: 12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 12, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            >
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setIsSearchActive(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold focus:outline-none"
+                style={{
+                  background: 'rgba(12,12,22,0.95)',
+                  backdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(76,201,240,0.3)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                  color: '#4cc9f0',
+                }}
+              >
+                <span>🔍</span>
+                <span>Cerca in quest&apos;area</span>
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
