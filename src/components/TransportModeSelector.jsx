@@ -127,6 +127,15 @@ export default function TransportModeSelector({
                   <span className="ml-auto text-sm font-semibold" style={{ color: selectedMode.color }}>
                     {costStr}
                   </span>
+                {/* Long-route warning for eco modes */}
+                {isEcoMode && currentRoute && (
+                  (selectedModeId === 'walk' && currentRoute.distance > 5000) ||
+                  (selectedModeId === 'bike' && currentRoute.distance > 30000)
+                ) && (
+                  <p className="text-[10px] text-amber-500 mt-1.5">
+                    ⚠ Percorso lungo — considera un altro mezzo di trasporto
+                  </p>
+                )}
                 </div>
               </div>
             </motion.div>

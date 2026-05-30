@@ -377,7 +377,8 @@ export default function App() {
     const steps = currentRoute.legs?.[0]?.steps ?? [];
     // Skip arrive step — happens on very short routes where dest is within 1–2 steps
     const firstTurn = steps[1]?.maneuver?.type !== 'arrive' ? steps[1] : null;
-    let announcement = name ? `Navigazione avviata verso ${name}.` : 'Navigazione avviata.';
+    const modeLabel = selectedModeId === 'walk' ? ' a piedi' : selectedModeId === 'bike' ? ' in bicicletta' : '';
+    let announcement = name ? `Navigazione avviata verso ${name}${modeLabel}.` : 'Navigazione avviata.';
     // Announce total distance for routes over 500m so the driver knows how far they're going
     const totalDist = currentRoute.distance ?? 0;
     if (totalDist > 500) {
