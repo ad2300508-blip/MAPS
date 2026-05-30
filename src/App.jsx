@@ -39,6 +39,7 @@ export default function App() {
   const [isOffRoute,     setIsOffRoute]     = useState(false);
   const [hasArrived,     setHasArrived]     = useState(false);
   const [mapCentered,    setMapCentered]    = useState(true);
+  const [isHudMinimized, setIsHudMinimized] = useState(false);
   const [isOnline,       setIsOnline]       = useState(navigator.onLine);
   const [isMuted,        setIsMuted]        = useState(false);
   const [arrivedStats,   setArrivedStats]   = useState(null);
@@ -295,6 +296,7 @@ export default function App() {
     setNavDestCoords(coords);
     setNavDestName(name);
     setIsNavigating(true);
+    setIsHudMinimized(false);
     setCurrentStepIdx(0);
     setHasArrived(false);
     setArrivedStats(null);
@@ -622,6 +624,34 @@ export default function App() {
     return () => document.removeEventListener('backbutton', handler);
   }, [hasArrived, isNavigating, destination, isSearchActive, handleStopNavigation, handleClosePanel, handleDismissArrived]);
 
+  // ── Desktop keyboard shortcuts for navigation ──────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'm' || e.key === 'M') {
+        if (isNavigating) setIsMuted((m) => !m);
+      } else if (e.key === 'r' || e.key === 'R') {
+        // Repeat last spoken instruction
+        if (isNavigating && currentRoute) {
+          const steps = currentRoute.legs?.[0]?.steps ?? [];
+          const nextStep = steps[currentStepIdx + 1];
+          if (nextStep) {
+            const instr = maneuverToItalian(
+              nextStep.maneuver?.type, nextStep.maneuver?.modifier,
+              nextStep.name ?? '', nextStep.maneuver?.exit,
+            );
+            speakRef.current(instr);
+          }
+        }
+      } else if (e.key === 'Escape') {
+        if (isNavigating) handleStopNavigation(false);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isNavigating, currentRoute, currentStepIdx, handleStopNavigation]);
+
   // ── Map pan detection: mark map as off-center ────────────────────────────
   const handleUserPan = useCallback(() => {
     if (isNavigating) setMapCentered(false);
@@ -933,7 +963,8 @@ export default function App() {
                 onRepeat={speak}
                 isMuted={isMuted}
                 onToggleMute={() => setIsMuted((m) => !m)}
-                onStop={() => handleStopNavigation(false)}
+                onMinimizeChange={setIsHudMinimized}
+                onStop={() => { setIsHudMinimized(false); handleStopNavigation(false); }}
               />
             </div>
           )}
@@ -944,7 +975,7 @@ export default function App() {
           {isNavigating && !mapCentered && (
             <motion.button
               className="absolute pointer-events-auto"
-              style={{ bottom: 220, right: 20, zIndex: 45 }}
+              style={{ bottom: isHudMinimized ? 100 : 220, right: 20, zIndex: 45, transition: 'bottom 0.3s ease' }}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}

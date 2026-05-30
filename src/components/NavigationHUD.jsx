@@ -110,13 +110,15 @@ export default function NavigationHUD({
   onRepeat,
   isMuted,
   onToggleMute,
+  onMinimizeChange,
   userLocation,
   userAccuracy,
   destName,
 }) {
   const [showTurns,   setShowTurns]   = useState(false);
   const [etaShared,   setEtaShared]   = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, _setIsMinimized] = useState(false);
+  const setIsMinimized = (v) => { _setIsMinimized(v); onMinimizeChange?.(v); };
 
   if (!route) return null;
 
