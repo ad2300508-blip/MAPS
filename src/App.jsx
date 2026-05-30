@@ -378,6 +378,23 @@ export default function App() {
         : null;
       setArrivedStats({ secs: elapsedSecs, meters: routeMeters, co2Saved, avgSpeed });
       setHasArrived(true);
+      // Persist trip to history (last 30 trips, newest first)
+      if (arrivingDest?.name && routeMeters) {
+        try {
+          const history = JSON.parse(localStorage.getItem('via-history') ?? '[]');
+          const entry = {
+            name:     arrivingDest.name,
+            address:  arrivingDest.address ?? '',
+            coords:   arrivingDest.coords,
+            emoji:    arrivingDest.emoji ?? '📍',
+            modeId:   navModeRef.current ?? 'car',
+            meters:   routeMeters,
+            secs:     elapsedSecs,
+            ts:       Date.now(),
+          };
+          localStorage.setItem('via-history', JSON.stringify([entry, ...history].slice(0, 30)));
+        } catch { }
+      }
       const destNameVoice = arrivingDest?.name ? ` a ${arrivingDest.name}` : '';
       const distVoice  = routeMeters ? ` Percorso di ${formatDistanceVoice(routeMeters)}.` : '';
       const timeVoice  = elapsedSecs > 60 ? ` Tempo impiegato: ${formatDuration(elapsedSecs)}.` : '';

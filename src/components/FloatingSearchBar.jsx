@@ -166,6 +166,9 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
   const [recent, setRecent] = useState(() => {
     try { return JSON.parse(localStorage.getItem('maps-recent') ?? '[]'); } catch { return []; }
   });
+  const [tripHistory, setTripHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('via-history') ?? '[]'); } catch { return []; }
+  });
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem('via-favorites') ?? '[]'); } catch { return []; }
   });
@@ -208,6 +211,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
       try { setFavorites(JSON.parse(localStorage.getItem('via-favorites') ?? '[]')); } catch { }
       try { setHomePlace(JSON.parse(localStorage.getItem('via-home') ?? 'null')); } catch { }
       try { setWorkPlace(JSON.parse(localStorage.getItem('via-work') ?? 'null')); } catch { }
+      try { setTripHistory(JSON.parse(localStorage.getItem('via-history') ?? '[]')); } catch { }
     }
   }, [isActive]);
 
@@ -692,7 +696,39 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
                         </>
                       )}
 
-                      {favorites.length === 0 && recent.length === 0 && (
+                      {/* Trip history — recent completed navigations */}
+                      {tripHistory.length > 0 && favorites.length === 0 && recent.length === 0 && (
+                        <>
+                          <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-widest">
+                            Viaggi completati
+                          </p>
+                          {tripHistory.slice(0, 5).map((trip, i) => {
+                            const dist = userLocation && trip.coords
+                              ? formatDistance(haversineMeters(userLocation, trip.coords))
+                              : null;
+                            const date = new Date(trip.ts);
+                            const dateStr = date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+                            return (
+                              <ResultRow
+                                key={i}
+                                emoji={trip.emoji ?? '📍'}
+                                primary={trip.name}
+                                secondary={`${dateStr} · ${trip.modeId === 'walk' ? '🚶' : trip.modeId === 'bike' ? '🚴' : '🚗'} ${trip.meters ? formatDistance(trip.meters) : ''}`}
+                                dist={dist}
+                                onClick={() => {
+                                  onResultSelect({
+                                    name: trip.name, address: trip.address ?? '',
+                                    coords: trip.coords, emoji: trip.emoji ?? '📍', type: '',
+                                  });
+                                  handleClose();
+                                }}
+                              />
+                            );
+                          })}
+                        </>
+                      )}
+
+                      {favorites.length === 0 && recent.length === 0 && tripHistory.length === 0 && (
                         <p className="px-4 py-6 text-sm text-slate-600 text-center">
                           Digita per cercare una destinazione
                         </p>
