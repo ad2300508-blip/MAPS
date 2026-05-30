@@ -21,9 +21,16 @@ export function useSpeech() {
       }
     };
     document.addEventListener('visibilitychange', onResume);
+
+    // Chrome bug: speechSynthesis.speaking can get stuck forever on long silence.
+    // Keep-alive: call resume() every 10 s while speaking to prevent Android from pausing.
+    const keepAlive = setInterval(() => {
+      if (window.speechSynthesis.speaking) window.speechSynthesis.resume();
+    }, 10_000);
     return () => {
       window.speechSynthesis.removeEventListener('voiceschanged', refresh);
       document.removeEventListener('visibilitychange', onResume);
+      clearInterval(keepAlive);
     };
   }, []);
 

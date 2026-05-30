@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-// Shortest angular difference from `from` to `to` in degrees
 function angleDelta(from, to) {
   let d = to - from;
   if (d > 180) d -= 360;
@@ -10,6 +9,7 @@ function angleDelta(from, to) {
 
 export function useCompassHeading() {
   const [heading, setHeading] = useState(null);
+  const lastUpdateRef = useRef(0);
 
   useEffect(() => {
     let smoothed = null;
@@ -30,7 +30,14 @@ export function useCompassHeading() {
       } else {
         smoothed = (smoothed + ALPHA * angleDelta(smoothed, raw) + 360) % 360;
       }
-      setHeading(Math.round(smoothed));
+
+      // Throttle state updates to ~10 Hz — compass fires at 60 Hz which
+      // would cause 60 React re-renders/s while navigation is active.
+      const now = performance.now();
+      if (now - lastUpdateRef.current >= 100) {
+        lastUpdateRef.current = now;
+        setHeading(Math.round(smoothed));
+      }
     };
 
     window.addEventListener('deviceorientationabsolute', handle, true);

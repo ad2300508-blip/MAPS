@@ -339,7 +339,7 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     search(cat.q);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     stopVoice();
     onActiveChange(false);
     setQuery('');
@@ -347,7 +347,23 @@ export default function FloatingSearchBar({ isActive, onActiveChange, onResultSe
     setLoading(false);
     abortRef.current?.abort();
     inputRef.current?.blur();
-  };
+  }, [stopVoice, onActiveChange]);
+
+  // Keyboard shortcut: "/" to open search, Escape to close
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape' && isActive) {
+        handleClose();
+        return;
+      }
+      if (e.key === '/' && !isActive && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        e.preventDefault();
+        onActiveChange(true);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isActive, onActiveChange, handleClose]);
 
   const handleSelect = (item) => {
     const dest = {

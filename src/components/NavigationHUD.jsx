@@ -427,22 +427,23 @@ export default function NavigationHUD({
             <p className="text-sm text-slate-300 leading-snug mt-0.5 line-clamp-2">
               {instruction}
             </p>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {/* Current road + destination */}
+            <div className="flex items-center gap-1.5 mt-1 min-w-0">
               {step.name && (
-                <p className="text-[10px] text-slate-600 truncate flex-1">
-                  📍 {step.name}
+                <p className="text-xs text-slate-400 truncate flex-1 leading-tight">
+                  {step.name}
                 </p>
               )}
               {roadSign && (
-                <p
+                <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.07)', color: '#64748b', letterSpacing: '0.02em' }}
+                  style={{ background: 'rgba(255,255,255,0.09)', color: '#64748b', letterSpacing: '0.03em' }}
                 >
                   {roadSign}
-                </p>
+                </span>
               )}
-              {destName && (
-                <p className="text-[10px] text-slate-600 flex-shrink-0 truncate max-w-[80px]">
+              {destName && !step.name && (
+                <p className="text-xs text-slate-500 flex-shrink-0 truncate">
                   → {destName}
                 </p>
               )}
